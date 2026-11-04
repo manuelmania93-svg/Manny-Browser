@@ -22,10 +22,12 @@ jobs:
       run: chmod +x gradlew
     - name: Build Slions download debug APK
       run: ./gradlew assembleSlionsFullDownloadDebug
+    - name: Locate built APK
+      run: find app/build/outputs -name '*.apk' -exec ls -la {} +
     - uses: actions/upload-artifact@v4
       with:
         name: manny-browser-debug
-        path: app/build/outputs/apk/slions/full/download/debug/
+        path: app/build/outputs/apk
         if-no-files-found: error
 
   smoke:
@@ -48,7 +50,7 @@ jobs:
           target: google_apis
           arch: x86_64
           script: |
-            APK=$(ls apk/*.apk | head -1)
+            APK=$(find apk -name '*.apk' | head -1)
             echo "Installing $APK"
             adb install -r "$APK"
             adb shell monkey -p net.slions.fulguris.debug -c android.intent.category.LAUNCHER 1
