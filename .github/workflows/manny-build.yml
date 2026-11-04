@@ -42,15 +42,7 @@ jobs:
       - name: Stage APK at absolute path
         run: |
           cp "$(find apk -name '*.apk' | head -1)" /tmp/app.apk && ls -la /tmp/app.apk
-          cat > /tmp/fixture-prefs.xml <<'PREFS'
-          <?xml version='1.0' encoding='utf-8' standalone='yes' ?>
-          <map>
-              <boolean name="pref_key_accept_terms" value="true" />
-              <boolean name="pref_key_analytics" value="false" />
-              <boolean name="pref_key_crash_report" value="false" />
-              <boolean name="pref_key_crash_logs" value="false" />
-          </map>
-          PREFS
+          printf '%s\n' '<?xml version="1.0" encoding="utf-8" standalone="yes" ?>' '<map>' '    <boolean name="pref_key_accept_terms" value="true" />' '    <boolean name="pref_key_analytics" value="false" />' '    <boolean name="pref_key_crash_report" value="false" />' '    <boolean name="pref_key_crash_logs" value="false" />' '</map>' > /tmp/fixture-prefs.xml
           cat /tmp/fixture-prefs.xml
       - name: Enable KVM
         run: |
