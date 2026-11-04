@@ -38,6 +38,7 @@ jobs:
             adb exec-out screencap -p > /tmp/browser-launch.png;
             adb logcat -d > /tmp/logcat.txt || true;
             [ -s /tmp/browser-launch.png ] || { echo "no launch screenshot captured - launch did not happen"; exit 1; };
+            adb shell "dumpsys activity activities | grep ResumedActivity" | grep -q "net.slions.fulguris.full.download.debug" || { echo "app not the resumed foreground activity"; exit 1; };
             if grep -q "FATAL EXCEPTION" /tmp/logcat.txt; then echo "App crashed on first launch"; exit 1; fi;
             echo "No crash; launch screenshot captured"
       - uses: actions/upload-artifact@v4
