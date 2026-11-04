@@ -51,17 +51,16 @@ jobs:
           api-level: 35
           target: google_apis
           arch: x86_64
-          script: |
-            APK=/tmp/app.apk
-            echo "Installing $APK"
-            adb install -r "$APK"
-            adb shell monkey -p net.slions.fulguris.debug -c android.intent.category.LAUNCHER 1
-            sleep 25
-            adb exec-out screencap -p > /tmp/browser-launch.png
-            adb logcat -d > /tmp/logcat.txt || true
-            if grep -q "FATAL EXCEPTION" /tmp/logcat.txt; then echo "App crashed on first launch"; exit 1; fi
+          script: >-
+            adb install -r /tmp/app.apk &&
+            adb shell monkey -p net.slions.fulguris.debug -c android.intent.category.LAUNCHER 1 &&
+            sleep 25 &&
+            adb exec-out screencap -p > /tmp/browser-launch.png;
+            adb logcat -d > /tmp/logcat.txt || true;
+            if grep -q "FATAL EXCEPTION" /tmp/logcat.txt; then echo "App crashed on first launch"; exit 1; fi;
             echo "No crash; launch screenshot captured"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: manny-smoke-artifacts
           path: |

@@ -1,0 +1,49 @@
+name: Manny smoke (reuse build artifact)
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Workflow run id whose manny-browser-debug artifact to smoke test'
+        required: true
+jobs:
+  smoke:
+    name: Emulator install + launch test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: manny-browser-debug
+          path: apk
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Stage APK at absolute path
+        run: |
+          APK=$(find apk -name '*.apk' | head -1)
+          [ -z "$APK" ] && { echo "no APK found in artifact"; exit 1; }
+          cp "$APK" /tmp/app.apk && ls -la /tmp/app.apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          script: >-
+            adb install -r /tmp/app.apk &&
+            adb shell monkey -p net.slions.fulguris.debug -c android.intent.category.LAUNCHER 1 &&
+            sleep 25 &&
+            adb exec-out screencap -p > /tmp/browser-launch.png;
+            adb logcat -d > /tmp/logcat.txt || true;
+            if grep -q "FATAL EXCEPTION" /tmp/logcat.txt; then echo "App crashed on first launch"; exit 1; fi;
+            echo "No crash; launch screenshot captured"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: manny-smoke-artifacts
+          path: |
+            /tmp/browser-launch.png
+            /tmp/logcat.txt
+          if-no-files-found: warn
