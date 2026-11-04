@@ -57,7 +57,7 @@ jobs:
           script: >-
             adb install -r /tmp/app.apk &&
             adb push /tmp/fixture-prefs.xml /data/local/tmp/fixture-prefs.xml &&
-            adb shell run-as net.slions.fulguris.full.download.debug sh -c 'mkdir -p shared_prefs && cp /data/local/tmp/fixture-prefs.xml shared_prefs/net.slions.fulguris.full.download.debug_preferences.xml' &&
+            adb shell "run-as net.slions.fulguris.full.download.debug sh -c 'mkdir -p shared_prefs && cp /data/local/tmp/fixture-prefs.xml shared_prefs/net.slions.fulguris.full.download.debug_preferences.xml'" &&
             adb shell am start -n net.slions.fulguris.full.download.debug/fulguris.activity.SplashActivity &&
             sleep 20 &&
             adb exec-out screencap -p > /tmp/browser-launch.png;
