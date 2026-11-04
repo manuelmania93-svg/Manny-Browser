@@ -56,16 +56,28 @@ jobs:
             adb shell am start -n net.slions.fulguris.full.download.debug/fulguris.activity.SplashActivity &&
             sleep 25 &&
             adb exec-out screencap -p > /tmp/browser-launch.png;
-            adb logcat -d > /tmp/logcat.txt || true;
             [ -s /tmp/browser-launch.png ] || { echo "no launch screenshot captured - launch did not happen"; exit 1; };
             RESUMED=$(adb shell "dumpsys activity activities | grep ResumedActivity"); echo "$RESUMED"; echo "$RESUMED" | grep -q "fulguris.activity\." || { echo "browser activity not resumed"; exit 1; }; echo "$RESUMED" | grep -qi "leakcanary" && { echo "leakcanary resumed instead of browser"; exit 1; };
-            if grep -q "FATAL EXCEPTION" /tmp/logcat.txt; then echo "App crashed on first launch"; exit 1; fi;
-            echo "No crash; launch screenshot captured"
+            adb shell input tap 181 262; sleep 3; adb shell input tap 181 262; sleep 3;
+            adb shell am start -a android.intent.action.VIEW -d https://example.com net.slions.fulguris.full.download.debug;
+            sleep 18;
+            adb exec-out screencap -p > /tmp/browser-page.png;
+            [ -s /tmp/browser-page.png ] || { echo "no page screenshot captured"; exit 1; };
+            adb shell am start -n net.slions.fulguris.full.download.debug/fulguris.activity.SettingsActivity;
+            sleep 6;
+            adb shell "dumpsys activity activities | grep ResumedActivity" | grep -q "SettingsActivity" || { echo "settings not resumed"; exit 1; };
+            adb exec-out screencap -p > /tmp/browser-settings.png;
+            [ -s /tmp/browser-settings.png ] || { echo "no settings screenshot captured"; exit 1; };
+            adb logcat -d > /tmp/logcat.txt || true;
+            if grep -q "FATAL EXCEPTION" /tmp/logcat.txt; then echo "App crashed"; exit 1; fi;
+            echo "No crash; launch, page load and settings captured"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: manny-smoke-artifacts
           path: |
             /tmp/browser-launch.png
+            /tmp/browser-page.png
+            /tmp/browser-settings.png
             /tmp/logcat.txt
           if-no-files-found: warn
