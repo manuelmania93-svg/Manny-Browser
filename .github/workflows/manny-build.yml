@@ -39,6 +39,8 @@ jobs:
         with:
           name: manny-browser-debug
           path: apk
+      - name: Stage APK at absolute path
+        run: cp "$(find apk -name '*.apk' | head -1)" /tmp/app.apk && ls -la /tmp/app.apk
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
