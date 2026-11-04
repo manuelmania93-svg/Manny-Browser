@@ -25,5 +25,5 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: manny-browser-debug
-        path: app/build/outputs/apk/slionsFull/download/debug/
+        path: app/build/outputs/apk/slions/full/download/debug/
         if-no-files-found: error
