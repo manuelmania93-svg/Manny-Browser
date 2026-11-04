@@ -33,10 +33,11 @@ jobs:
           arch: x86_64
           script: >-
             adb install -r /tmp/app.apk &&
-            adb shell monkey -p net.slions.fulguris.debug -c android.intent.category.LAUNCHER 1 &&
+            adb shell monkey -p net.slions.fulguris.full.download.debug -c android.intent.category.LAUNCHER 1 &&
             sleep 25 &&
             adb exec-out screencap -p > /tmp/browser-launch.png;
             adb logcat -d > /tmp/logcat.txt || true;
+            [ -s /tmp/browser-launch.png ] || { echo "no launch screenshot captured - launch did not happen"; exit 1; };
             if grep -q "FATAL EXCEPTION" /tmp/logcat.txt; then echo "App crashed on first launch"; exit 1; fi;
             echo "No crash; launch screenshot captured"
       - uses: actions/upload-artifact@v4
