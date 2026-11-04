@@ -21,6 +21,16 @@ jobs:
           APK=$(find apk -name '*.apk' | head -1)
           [ -z "$APK" ] && { echo "no APK found in artifact"; exit 1; }
           cp "$APK" /tmp/app.apk && ls -la /tmp/app.apk
+          cat > /tmp/fixture-prefs.xml <<'PREFS'
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <boolean name="pref_key_accept_terms" value="true" />
+    <boolean name="pref_key_analytics" value="false" />
+    <boolean name="pref_key_crash_report" value="false" />
+    <boolean name="pref_key_crash_logs" value="false" />
+</map>
+PREFS
+          cat /tmp/fixture-prefs.xml
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -33,26 +43,20 @@ jobs:
           arch: x86_64
           script: >-
             adb install -r /tmp/app.apk &&
+            adb push /tmp/fixture-prefs.xml /data/local/tmp/fixture-prefs.xml &&
+            adb shell run-as net.slions.fulguris.full.download.debug sh -c 'mkdir -p shared_prefs && cp /data/local/tmp/fixture-prefs.xml shared_prefs/net.slions.fulguris.full.download.debug_preferences.xml' &&
             adb shell am start -n net.slions.fulguris.full.download.debug/fulguris.activity.SplashActivity &&
-            sleep 25 &&
+            sleep 20 &&
             adb exec-out screencap -p > /tmp/browser-launch.png;
             [ -s /tmp/browser-launch.png ] || { echo "no launch screenshot captured - launch did not happen"; exit 1; };
-            RESUMED=$(adb shell "dumpsys activity activities | grep ResumedActivity"); echo "$RESUMED"; echo "$RESUMED" | grep -q "fulguris.activity\." || { echo "browser activity not resumed"; exit 1; }; echo "$RESUMED" | grep -qi "leakcanary" && { echo "leakcanary resumed instead of browser"; exit 1; };
-            for i in 1 2 3 4 5 6; do
-              R=$(adb shell "dumpsys activity activities | grep ResumedActivity"); echo "$R" | grep -q "IntroActivity" || break;
-              adb shell uiautomator dump /sdcard/ui.xml >/dev/null; XML=$(adb shell cat /sdcard/ui.xml);
-              B=$(echo "$XML" | grep -o 'resource-id="[^"]*:id/skip"[^>]*' | grep -o 'bounds="[^"]*"' | head -1);
-              [ -z "$B" ] && B=$(echo "$XML" | grep -o 'resource-id="[^"]*:id/next"[^>]*' | grep -o 'bounds="[^"]*"' | head -1);
-              [ -z "$B" ] && B=$(echo "$XML" | grep -o 'resource-id="[^"]*:id/done"[^>]*' | grep -o 'bounds="[^"]*"' | head -1);
-              [ -z "$B" ] && { echo "no intro nav button found"; exit 1; };
-              CO=$(echo "$B" | sed 's/bounds="\[\([0-9]*\),\([0-9]*\)\]\[\([0-9]*\),\([0-9]*\)\]"/\1 \2 \3 \4/');
-              set -- $CO; X=$(( ($1+$3)/2 )); Y=$(( ($2+$4)/2 ));
-              echo "intro tap $i at $X $Y"; adb shell input tap $X $Y; sleep 3;
-            done;
-            R=$(adb shell "dumpsys activity activities | grep ResumedActivity"); echo "$R"; echo "$R" | grep -q "IntroActivity" && { echo "still in intro after traversal"; exit 1; };
+            RESUMED=$(adb shell "dumpsys activity activities | grep ResumedActivity"); echo "$RESUMED";
+            echo "$RESUMED" | grep -q "fulguris.activity\." || { echo "browser activity not resumed"; exit 1; };
+            echo "$RESUMED" | grep -qi "leakcanary" && { echo "leakcanary resumed instead of browser"; exit 1; };
+            echo "$RESUMED" | grep -q "IntroActivity" && { echo "intro still shown despite fixture prefs"; exit 1; };
             adb shell am start -a android.intent.action.VIEW -d https://example.com net.slions.fulguris.full.download.debug;
             sleep 18;
-            R=$(adb shell "dumpsys activity activities | grep ResumedActivity"); echo "$R"; echo "$R" | grep -q "IntroActivity" && { echo "intro regained foreground on VIEW"; exit 1; };
+            R=$(adb shell "dumpsys activity activities | grep ResumedActivity"); echo "$R";
+            echo "$R" | grep -q "IntroActivity" && { echo "intro regained foreground on VIEW"; exit 1; };
             adb exec-out screencap -p > /tmp/browser-page.png;
             [ -s /tmp/browser-page.png ] || { echo "no page screenshot captured"; exit 1; };
             adb shell am start -n net.slions.fulguris.full.download.debug/fulguris.activity.SettingsActivity;
