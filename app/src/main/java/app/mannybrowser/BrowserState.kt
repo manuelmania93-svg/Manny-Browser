@@ -14,6 +14,7 @@ import android.webkit.CookieManager
 import android.widget.Toast
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.WebChromeClient
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -32,6 +33,7 @@ class Tab(val id: Long, val webView: WebView) {
     var url by mutableStateOf<String?>(null)
     var title by mutableStateOf("")
     var preview by mutableStateOf<Bitmap?>(null)
+    var favicon by mutableStateOf<Bitmap?>(null)
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -104,6 +106,10 @@ class BrowserState(private val context: Context) {
             override fun onPageFinished(view: WebView, finishedUrl: String?) {
                 view.title?.let { if (it.isNotBlank()) tab.title = it }
             }
+        }
+        wv.webChromeClient = object : WebChromeClient() {
+            override fun onReceivedIcon(view: WebView, icon: Bitmap) { tab.favicon = icon }
+            override fun onReceivedTitle(view: WebView, title: String) { tab.title = title }
         }
         wv.setDownloadListener { dlUrl, userAgent, contentDisposition, mimeType, _ ->
             try {

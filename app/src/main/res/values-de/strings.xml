@@ -22,4 +22,5 @@
     <string name="no_history">Noch kein Verlauf</string>
     <string name="no_downloads">Noch keine Downloads</string>
     <string name="clear_history">Verlauf löschen</string>
+    <string name="loading_page">Seite wird geladen</string>
 </resources>

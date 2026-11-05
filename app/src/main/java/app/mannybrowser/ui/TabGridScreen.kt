@@ -64,7 +64,8 @@ fun TabGridScreen(state: BrowserState) {
                         }
                     ) {
                         Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(label.take(1).uppercase(), modifier = Modifier.size(22.dp), color = MaterialTheme.colorScheme.primary)
+                            tab.favicon?.let { icon -> Image(icon.asImageBitmap(), contentDescription = null, modifier = Modifier.size(22.dp)) }
+                                ?: Text(label.take(1).uppercase(), modifier = Modifier.size(22.dp), color = MaterialTheme.colorScheme.primary)
                             Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             IconButton(onClick = { state.closeTab(index) }, modifier = Modifier.size(36.dp)) {
                                 Icon(Icons.Filled.Close, contentDescription = "Close tab", modifier = Modifier.size(20.dp))
@@ -73,7 +74,7 @@ fun TabGridScreen(state: BrowserState) {
                         Box(Modifier.fillMaxWidth().height(240.dp).background(MaterialTheme.colorScheme.surface)) {
                             tab.preview?.let { bitmap ->
                                 Image(bitmap.asImageBitmap(), contentDescription = "Page preview", contentScale = ContentScale.Crop, alignment = Alignment.TopCenter, modifier = Modifier.fillMaxSize())
-                            } ?: Text(if (tab.url == null) "New tab" else "Loading page", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.Center))
+                            } ?: Text(if (tab.url == null) stringResource(R.string.new_tab) else stringResource(R.string.loading_page), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.Center))
                         }
                     }
                 }

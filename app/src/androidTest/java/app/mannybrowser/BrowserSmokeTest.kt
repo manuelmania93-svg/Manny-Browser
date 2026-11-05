@@ -119,6 +119,11 @@ class BrowserSmokeTest {
             click(str(R.string.fullscreen))
             assertTrue("Fullscreen controls still visible", device.wait(Until.gone(By.desc("Menu")), 5000))
             shot("10-fullscreen")
+            // Android first-use immersive tutorial intercepts Back. Dismiss only that system overlay.
+            val gotIt = device.wait(Until.findObject(By.res("android", "ok")), 2500)
+            if (gotIt != null) gotIt.click()
+            else device.wait(Until.findObject(By.text("Got it")), 1000)?.click()
+            device.waitForIdle()
             device.pressBack()
             assertTrue("Could not exit fullscreen", device.wait(Until.hasObject(By.desc("Menu")), 5000))
             device.findObject(By.desc("Menu")).click()

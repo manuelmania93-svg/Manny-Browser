@@ -22,4 +22,5 @@
     <string name="no_history">No history yet</string>
     <string name="no_downloads">No downloads yet</string>
     <string name="clear_history">Clear history</string>
+    <string name="loading_page">Loading page</string>
 </resources>
