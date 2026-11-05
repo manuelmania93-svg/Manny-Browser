@@ -1,6 +1,8 @@
 package app.mannybrowser
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
@@ -27,6 +29,7 @@ enum class Overlay { NONE, TABS, BOOKMARKS, HISTORY, DOWNLOADS }
 class Tab(val id: Long, val webView: WebView) {
     var url by mutableStateOf<String?>(null)
     var title by mutableStateOf("")
+    var preview by mutableStateOf<Bitmap?>(null)
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -63,7 +66,23 @@ class BrowserState(private val context: Context) {
         tabs.forEach { applyDark(it.webView) }
     }
 
+    fun captureCurrentPreview() {
+        val tab = currentTab ?: return
+        val view = tab.webView
+        if (tab.url == null || view.width <= 0 || view.height <= 0) return
+        val width = 360
+        val height = (view.height * width.toFloat() / view.width).toInt().coerceIn(1, 720)
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.scale(width.toFloat() / view.width, width.toFloat() / view.width)
+        view.draw(canvas)
+        tab.preview = bitmap
+    }
+
+    fun showTabs() { captureCurrentPreview(); overlay = Overlay.TABS }
+
     fun newTab(url: String? = null): Tab {
+        captureCurrentPreview()
         val wv = WebView(context)
         val tab = Tab(nextId++, wv)
         wv.settings.javaScriptEnabled = true
@@ -99,6 +118,7 @@ class BrowserState(private val context: Context) {
 
     fun closeTab(index: Int) {
         val t = tabs.getOrNull(index) ?: return
+        t.preview = null
         t.webView.destroy()
         tabs.removeAt(index)
         if (tabs.isEmpty()) { newTab() }
@@ -107,7 +127,7 @@ class BrowserState(private val context: Context) {
     }
 
     fun closeAllTabs() {
-        tabs.forEach { it.webView.destroy() }
+        tabs.forEach { it.preview = null; it.webView.destroy() }
         tabs.clear()
         newTab()
     }
@@ -121,6 +141,7 @@ class BrowserState(private val context: Context) {
 
     fun goHome() {
         val t = currentTab ?: return
+        t.preview = null
         t.webView.stopLoading()
         t.url = null
         t.title = ""
@@ -173,7 +194,7 @@ class BrowserState(private val context: Context) {
     }
 
     fun destroyAll() {
-        tabs.forEach { it.webView.destroy() }
+        tabs.forEach { it.preview = null; it.webView.destroy() }
         tabs.clear()
     }
 

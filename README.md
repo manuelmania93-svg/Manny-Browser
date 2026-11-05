@@ -7,3 +7,5 @@ Builds are debug-signed GitHub Actions artifacts. APK identity and actual UI sti
 Implemented surface: start-page shortcuts, URL/search entry, tabs, bookmarks, history, DownloadManager integration, share, find, dark mode and fullscreen. Each feature requires runtime testing. Downloads on authenticated sites and long-lived tab restoration remain unverified.
 
 See THIRD_PARTY_NOTICES.md for reused build components and libraries.
+
+Tab previews are temporary in-memory bitmaps, never written to storage. Closing a tab or all tabs drops their preview references; no incognito mode is claimed in this version. CI screenshots use only synthetic/public test pages, not personal browsing.

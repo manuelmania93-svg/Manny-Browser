@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -77,7 +78,7 @@ fun BrowserScreen(state: BrowserState) {
                     val bookmarked = tab?.url?.let { state.bookmarks.any { b -> b.url == it } } == true
                     IconButton(onClick = { state.toggleBookmark() }) {
                         Icon(
-                            if (bookmarked) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
+                            if (bookmarked) Icons.Filled.Star else Icons.Filled.StarBorder,
                             contentDescription = stringResource(R.string.bookmarks)
                         )
                     }
@@ -170,7 +171,7 @@ fun BrowserScreen(state: BrowserState) {
                         Icon(Icons.Filled.Star, contentDescription = stringResource(R.string.bookmarks))
                     }
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        IconButton(onClick = { state.overlay = Overlay.TABS }, modifier = Modifier.semantics { contentDescription = "Tabs" }) {
+                        IconButton(onClick = { state.showTabs() }, modifier = Modifier.semantics { contentDescription = "Tabs" }) {
                             Box(
                                 Modifier.size(26.dp).background(
                                     MaterialTheme.colorScheme.surfaceVariant, CircleShape

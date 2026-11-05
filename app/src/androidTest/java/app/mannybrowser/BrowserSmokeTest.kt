@@ -41,6 +41,9 @@ class BrowserSmokeTest {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com"), context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             assertTrue("WebView did not render Example Domain", visible("Example Domain"))
             shot("04-loaded")
+            device.findObject(By.desc("Tabs")).click()
+            assertTrue("Loaded page preview missing", device.wait(Until.hasObject(By.desc("Page preview")), 10000))
+            shot("06-page-preview")
         } finally { shot("05-final") }
     }
 }

@@ -1,6 +1,10 @@
 package app.mannybrowser.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,12 +64,14 @@ fun TabGridScreen(state: BrowserState) {
                         }
                     ) {
                         Box(
-                            Modifier.fillMaxWidth().height(120.dp).background(
+                            Modifier.fillMaxWidth().height(240.dp).background(
                                 CardColors[(label.hashCode() and Int.MAX_VALUE) % CardColors.size],
                                 RoundedCornerShape(12.dp)
                             )
                         ) {
-                            Text(
+                            tab.preview?.let { bitmap ->
+                                Image(bitmap.asImageBitmap(), contentDescription = "Page preview", contentScale = ContentScale.Crop, alignment = Alignment.TopCenter, modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)))
+                            } ?: Text(
                                 label.firstOrNull()?.uppercase() ?: "?",
                                 color = Color.White,
                                 fontSize = 36.sp,
@@ -73,7 +79,7 @@ fun TabGridScreen(state: BrowserState) {
                             )
                             IconButton(
                                 onClick = { state.closeTab(index) },
-                                modifier = Modifier.align(Alignment.TopEnd).size(32.dp)
+                                modifier = Modifier.align(Alignment.TopEnd).size(32.dp).background(Color(0xAA000000), RoundedCornerShape(16.dp))
                             ) {
                                 Icon(
                                     Icons.Filled.Close,

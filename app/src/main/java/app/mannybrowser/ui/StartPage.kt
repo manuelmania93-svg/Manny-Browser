@@ -56,7 +56,7 @@ fun StartPage(state: BrowserState) {
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(5),
-        modifier = Modifier.fillMaxSize().padding(12.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 32.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -69,7 +69,7 @@ fun StartPage(state: BrowserState) {
                 )
             ) {
                 Box(
-                    Modifier.size(56.dp).background(tileColor(s.name), RoundedCornerShape(14.dp)),
+                    Modifier.size(56.dp).background(tileColor(s.name), RoundedCornerShape(50)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -95,7 +95,7 @@ fun StartPage(state: BrowserState) {
             ) {
                 Box(
                     Modifier.size(56.dp).background(
-                        MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)
+                        MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(50)
                     ),
                     contentAlignment = Alignment.Center
                 ) {
