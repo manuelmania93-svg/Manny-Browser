@@ -26,6 +26,12 @@ class BrowserSmokeTest {
     }
     private fun visible(text: String) = device.wait(Until.hasObject(By.textContains(text)), 20000)
     private fun click(text: String) { assertTrue("Missing $text", visible(text)); device.findObject(By.text(text)).click(); device.waitForIdle() }
+    private fun clickDesc(description: String) {
+        val target = device.wait(Until.findObject(By.desc(description)), 10000)
+        assertNotNull("Missing control: $description", target)
+        target!!.click()
+        device.waitForIdle()
+    }
     private fun launch() {
         context.getSharedPreferences("manny",0).edit().clear().commit()
         context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
@@ -36,7 +42,7 @@ class BrowserSmokeTest {
         launch()
         try {
             assertTrue(device.wait(Until.hasObject(By.desc(str(R.string.add_shortcut))),10000))
-            device.findObject(By.desc(str(R.string.add_shortcut))).click()
+            clickDesc(str(R.string.add_shortcut))
             assertTrue(visible(str(R.string.name_label)))
             val fields = device.findObjects(By.clazz("android.widget.EditText"))
             fields[fields.size-2].text = "Example"
@@ -63,9 +69,9 @@ class BrowserSmokeTest {
             assertTrue("Fixture not loaded", visible("Manny fixture"))
             click("Second page")
             assertTrue("Second page not loaded", visible("Second fixture"))
-            device.findObject(By.desc("Back")).click()
+            clickDesc("Back")
             assertTrue("Back did not return", visible("Manny fixture"))
-            device.findObject(By.desc("Forward")).click()
+            clickDesc("Forward")
             assertTrue("Forward did not return", visible("Second fixture"))
             click("Download fixture")
             val dm = context.getSystemService(android.content.Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
@@ -80,7 +86,7 @@ class BrowserSmokeTest {
                 if (!downloaded) Thread.sleep(500)
             }
             assertTrue("DownloadManager did not complete fixture", downloaded)
-            device.findObject(By.desc("Menu")).click()
+            clickDesc("Menu")
             click(str(R.string.downloads))
             assertTrue("Completed download missing in app", visible("manny-test"))
             shot("15-download-complete")
@@ -99,23 +105,23 @@ class BrowserSmokeTest {
             assertTrue("Bookmark list missing page", visible("Example Domain"))
             shot("05-bookmarks")
             device.pressBack()
-            device.findObject(By.desc("Menu")).click()
+            clickDesc("Menu")
             shot("06-menu")
             click(str(R.string.history))
             assertTrue("History missing page", visible("example.com"))
             shot("07-history")
             device.pressBack()
-            device.findObject(By.desc("Menu")).click()
+            clickDesc("Menu")
             click(str(R.string.find_in_page))
             val fields = device.findObjects(By.clazz("android.widget.EditText"))
             fields.last().text = "domain"
             shot("08-find")
             device.pressBack()
-            device.findObject(By.desc("Menu")).click()
+            clickDesc("Menu")
             click(str(R.string.dark_mode))
             assertTrue("Dark-mode override missing", context.getSharedPreferences("manny",0).contains("dark"))
             shot("09-theme")
-            device.findObject(By.desc("Menu")).click()
+            clickDesc("Menu")
             click(str(R.string.fullscreen))
             assertTrue("Fullscreen controls still visible", device.wait(Until.gone(By.desc("Menu")), 5000))
             shot("10-fullscreen")
@@ -126,21 +132,57 @@ class BrowserSmokeTest {
             device.waitForIdle()
             device.pressBack()
             assertTrue("Could not exit fullscreen", device.wait(Until.hasObject(By.desc("Menu")), 5000))
-            device.findObject(By.desc("Menu")).click()
+            clickDesc("Menu")
             click(str(R.string.downloads))
             assertTrue("Download screen absent", visible(str(R.string.downloads)))
             shot("11-downloads-empty")
             device.pressBack()
-            device.findObject(By.desc("Menu")).click()
+            clickDesc("Menu")
             click(str(R.string.share))
             assertTrue("Share chooser not opened", device.wait(Until.hasObject(By.pkg("android")), 5000))
             shot("12-share-chooser")
             device.pressBack()
-            device.findObject(By.desc("Tabs")).click()
+            clickDesc("Tabs")
             assertTrue("Loaded page preview missing", device.wait(Until.hasObject(By.desc("Page preview")), 10000))
             shot("13-page-preview")
             click(str(R.string.new_tab))
             assertTrue(device.wait(Until.hasObject(By.desc(str(R.string.add_shortcut))),5000))
         } finally { shot("14-final") }
     }
+    @Test fun fullscreenBackStandalone() {
+        launch()
+        try {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("http://localhost:8765"), context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            assertTrue("Fixture not loaded", visible("Manny fixture"))
+            clickDesc("Menu")
+            click(str(R.string.fullscreen))
+            assertTrue("Fullscreen controls still visible", device.wait(Until.gone(By.desc("Menu")), 5000))
+            val gotIt = device.wait(Until.findObject(By.res("android", "ok")), 2500)
+            if (gotIt != null) gotIt.click()
+            else device.wait(Until.findObject(By.text("Got it")), 1000)?.click()
+            device.waitForIdle()
+            shot("20-fullscreen-standalone")
+            device.pressBack()
+            assertTrue("Back did not exit fullscreen", device.wait(Until.hasObject(By.desc("Menu")), 10000))
+            shot("21-fullscreen-exited")
+        } finally { shot("22-fullscreen-final") }
+    }
+    @Test fun shareAndTabPreviewStandalone() {
+        launch()
+        try {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("http://localhost:8765"), context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            assertTrue("Fixture not loaded", visible("Manny fixture"))
+            clickDesc("Menu")
+            click(str(R.string.share))
+            assertTrue("Share chooser absent", device.wait(Until.hasObject(By.pkg("android")), 10000))
+            shot("23-share-standalone")
+            device.pressBack()
+            clickDesc("Tabs")
+            assertTrue("Actual page preview absent", device.wait(Until.hasObject(By.desc("Page preview")), 10000))
+            shot("24-tabs-standalone")
+            click(str(R.string.new_tab))
+            assertTrue("New tab start page absent", device.wait(Until.hasObject(By.desc(str(R.string.add_shortcut))),10000))
+        } finally { shot("25-share-tabs-final") }
+    }
+
 }

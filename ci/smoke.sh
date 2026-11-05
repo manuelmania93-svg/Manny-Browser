@@ -8,12 +8,14 @@ FIXTURE_PID=$!
 trap 'kill "$FIXTURE_PID" 2>/dev/null || true' EXIT
 adb reverse tcp:8765 tcp:8765
 adb logcat -c
+status=0
 for language in en de; do
   adb shell cmd locale set-app-locales app.mannybrowser --locales "$language"
   adb shell am force-stop app.mannybrowser
   adb shell am instrument -w app.mannybrowser.test/androidx.test.runner.AndroidJUnitRunner | tee "evidence/instrumentation-$language.txt"
   adb pull /sdcard/Android/data/app.mannybrowser/files/manny-evidence/. evidence/ || true
-  grep -q 'OK (' "evidence/instrumentation-$language.txt"
-  ! grep -q 'FAILURES\|INSTRUMENTATION_FAILED\|Process crashed' "evidence/instrumentation-$language.txt"
+  if ! grep -q 'OK (' "evidence/instrumentation-$language.txt" || grep -q 'FAILURES\|INSTRUMENTATION_FAILED\|Process crashed' "evidence/instrumentation-$language.txt"; then status=1; fi
 done
 adb logcat -d > evidence/logcat.txt
+
+exit "$status"
