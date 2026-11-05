@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Manny Browser</string>
+    <string name="search_hint">Search or enter address</string>
+    <string name="add_shortcut">Add shortcut</string>
+    <string name="edit_shortcut">Edit shortcut</string>
+    <string name="name_label">Name</string>
+    <string name="url_label">URL</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="history">History</string>
+    <string name="downloads">Downloads</string>
+    <string name="new_tab">New tab</string>
+    <string name="close_all">Close all</string>
+    <string name="dark_mode">Dark mode</string>
+    <string name="find_in_page">Find in page</string>
+    <string name="share">Share</string>
+    <string name="fullscreen">Fullscreen</string>
+    <string name="no_bookmarks">No bookmarks yet</string>
+    <string name="no_history">No history yet</string>
+    <string name="no_downloads">No downloads yet</string>
+    <string name="clear_history">Clear history</string>
+</resources>
