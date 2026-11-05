@@ -58,51 +58,22 @@ fun TabGridScreen(state: BrowserState) {
                 itemsIndexed(state.tabs) { index, tab ->
                     val label = tab.title.ifBlank { tab.url ?: stringResource(R.string.new_tab) }
                     Column(
-                        Modifier.clickable {
+                        Modifier.clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface).clickable {
                             state.currentTabIndex = index
                             state.overlay = Overlay.NONE
                         }
                     ) {
-                        Box(
-                            Modifier.fillMaxWidth().height(240.dp).background(
-                                CardColors[(label.hashCode() and Int.MAX_VALUE) % CardColors.size],
-                                RoundedCornerShape(12.dp)
-                            )
-                        ) {
-                            tab.preview?.let { bitmap ->
-                                Image(bitmap.asImageBitmap(), contentDescription = "Page preview", contentScale = ContentScale.Crop, alignment = Alignment.TopCenter, modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)))
-                            } ?: Text(
-                                label.firstOrNull()?.uppercase() ?: "?",
-                                color = Color.White,
-                                fontSize = 36.sp,
-                                modifier = Modifier.align(Alignment.Center)
-                            )
-                            IconButton(
-                                onClick = { state.closeTab(index) },
-                                modifier = Modifier.align(Alignment.TopEnd).size(32.dp).background(Color(0xAA000000), RoundedCornerShape(16.dp))
-                            ) {
-                                Icon(
-                                    Icons.Filled.Close,
-                                    contentDescription = null,
-                                    tint = Color.White
-                                )
+                        Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(label.take(1).uppercase(), modifier = Modifier.size(22.dp), color = MaterialTheme.colorScheme.primary)
+                            Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            IconButton(onClick = { state.closeTab(index) }, modifier = Modifier.size(36.dp)) {
+                                Icon(Icons.Filled.Close, contentDescription = "Close tab", modifier = Modifier.size(20.dp))
                             }
                         }
-                        Text(
-                            label,
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                        tab.url?.let {
-                            Text(
-                                it,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                        Box(Modifier.fillMaxWidth().height(240.dp).background(MaterialTheme.colorScheme.surface)) {
+                            tab.preview?.let { bitmap ->
+                                Image(bitmap.asImageBitmap(), contentDescription = "Page preview", contentScale = ContentScale.Crop, alignment = Alignment.TopCenter, modifier = Modifier.fillMaxSize())
+                            } ?: Text(if (tab.url == null) "New tab" else "Loading page", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.Center))
                         }
                     }
                 }

@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -94,7 +96,13 @@ fun BrowserScreen(state: BrowserState) {
                         keyboardActions = KeyboardActions(onGo = {
                             if (urlText.isNotBlank()) state.navigate(urlText)
                         }),
-                        colors = TextFieldDefaults.colors()
+                        shape = RoundedCornerShape(16.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        )
                     )
                     IconButton(onClick = {
                         tab?.url?.let { tab.webView.reload() } ?: state.navigate(urlText)
@@ -161,13 +169,13 @@ fun BrowserScreen(state: BrowserState) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = { tab?.webView?.goBack() }, enabled = tab?.webView?.canGoBack() == true) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                     IconButton(onClick = { tab?.webView?.goForward() }, enabled = tab?.webView?.canGoForward() == true) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward")
                     }
                     IconButton(onClick = { state.goHome() }) {
-                        Icon(Icons.Filled.Home, contentDescription = null)
+                        Icon(Icons.Filled.Home, contentDescription = "Home")
                     }
                     IconButton(onClick = { state.overlay = Overlay.BOOKMARKS }) {
                         Icon(Icons.Filled.Star, contentDescription = stringResource(R.string.bookmarks))
