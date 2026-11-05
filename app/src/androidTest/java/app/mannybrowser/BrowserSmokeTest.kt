@@ -17,7 +17,7 @@ class BrowserSmokeTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val device = UiDevice.getInstance(instrumentation)
     private fun shot(name: String) {
-        val dir = File("/sdcard/manny-evidence").apply { mkdirs() }
+        val dir = File(instrumentation.targetContext.getExternalFilesDir(null), "manny-evidence").apply { mkdirs() }
         device.takeScreenshot(File(dir, "$name.png"))
         device.dumpWindowHierarchy(File(dir, "$name.xml"))
     }

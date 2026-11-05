@@ -10,6 +10,8 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.Environment
 import android.webkit.URLUtil
+import android.webkit.CookieManager
+import android.widget.Toast
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.getValue
@@ -87,6 +89,8 @@ class BrowserState(private val context: Context) {
         val tab = Tab(nextId++, wv)
         wv.settings.javaScriptEnabled = true
         wv.settings.domStorageEnabled = true
+        wv.settings.allowFileAccess = false
+        wv.settings.allowContentAccess = false
         applyDark(wv)
         wv.webViewClient = object : WebViewClient() {
             override fun doUpdateVisitedHistory(view: WebView, visitedUrl: String?, isReload: Boolean) {
@@ -101,14 +105,16 @@ class BrowserState(private val context: Context) {
                 view.title?.let { if (it.isNotBlank()) tab.title = it }
             }
         }
-        wv.setDownloadListener { dlUrl, _, contentDisposition, mimeType, _ ->
+        wv.setDownloadListener { dlUrl, userAgent, contentDisposition, mimeType, _ ->
             try {
                 val req = DownloadManager.Request(Uri.parse(dlUrl))
+                CookieManager.getInstance().getCookie(dlUrl)?.let { req.addRequestHeader("Cookie", it) }
+                userAgent?.let { req.addRequestHeader("User-Agent", it) }
                 val name = URLUtil.guessFileName(dlUrl, contentDisposition, mimeType)
                 req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
                 req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 (context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).enqueue(req)
-            } catch (_: Exception) { }
+            } catch (_: Exception) { Toast.makeText(context, "Download could not be started", Toast.LENGTH_LONG).show() }
         }
         tabs.add(tab)
         currentTabIndex = tabs.size - 1

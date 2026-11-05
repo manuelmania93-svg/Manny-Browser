@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,7 +69,8 @@ fun BrowserScreen(state: BrowserState) {
         }
     }
 
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             if (!state.fullscreen) {
                 Row(
@@ -199,4 +201,5 @@ fun BrowserScreen(state: BrowserState) {
 
         if (state.menuOpen) MenuSheet(state)
     }
+}
 }
