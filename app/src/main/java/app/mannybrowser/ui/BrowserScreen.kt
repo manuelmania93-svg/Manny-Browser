@@ -104,6 +104,18 @@ fun BrowserScreen(state: BrowserState) {
                             unfocusedIndicatorColor = Color.Transparent
                         )
                     )
+                    Box(contentAlignment = Alignment.Center) {
+                        IconButton(onClick = { state.showTabs() }, modifier = Modifier.semantics { contentDescription = "Tabs" }) {
+                            Box(
+                                Modifier.size(26.dp).background(
+                                    MaterialTheme.colorScheme.surfaceVariant, CircleShape
+                                ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("${state.tabs.size}", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                    }
                     IconButton(onClick = {
                         tab?.url?.let { tab.webView.reload() } ?: state.navigate(urlText)
                     }) {
@@ -180,18 +192,7 @@ fun BrowserScreen(state: BrowserState) {
                     IconButton(onClick = { state.overlay = Overlay.BOOKMARKS }) {
                         Icon(Icons.Filled.Star, contentDescription = stringResource(R.string.bookmarks))
                     }
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        IconButton(onClick = { state.showTabs() }, modifier = Modifier.semantics { contentDescription = "Tabs" }) {
-                            Box(
-                                Modifier.size(26.dp).background(
-                                    MaterialTheme.colorScheme.surfaceVariant, CircleShape
-                                ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("${state.tabs.size}", style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
-                    }
+                    Box(Modifier.weight(1f)) {}
                     IconButton(onClick = { state.overlay = Overlay.NONE; state.menuOpen = true }) {
                         Icon(Icons.Filled.Menu, contentDescription = "Menu")
                     }

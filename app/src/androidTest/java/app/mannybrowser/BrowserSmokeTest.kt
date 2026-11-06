@@ -29,6 +29,12 @@ class BrowserSmokeTest {
     private fun clickDesc(description: String) {
         val target = device.wait(Until.findObject(By.desc(description)), 10000)
         assertNotNull("Missing control: $description", target)
+        if (description == "Tabs") {
+            val bounds = target!!.visibleBounds
+            assertTrue("Tab control must be in top toolbar", bounds.centerY() < device.displayHeight / 4)
+            assertEquals("Only one tab control", 1, device.findObjects(By.desc("Tabs")).size)
+            shot("26-top-tab-control")
+        }
         target!!.click()
         device.waitForIdle()
     }
