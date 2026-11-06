@@ -35,6 +35,12 @@ class BrowserSmokeTest {
     private fun launch() {
         context.getSharedPreferences("manny",0).edit().clear().commit()
         context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+        device.waitForIdle()
+        shot("00-launch-diagnostic")
+        if (device.hasObject(By.text("Pixel Launcher isn't responding"))) {
+            device.findObject(By.text("Close app"))?.click()
+            device.waitForIdle()
+        }
         assertTrue("Manny activity not foreground", device.wait(Until.hasObject(By.pkg("app.mannybrowser")), 15000))
     }
     @Test fun shortcutsFormsAndPersistence() {
