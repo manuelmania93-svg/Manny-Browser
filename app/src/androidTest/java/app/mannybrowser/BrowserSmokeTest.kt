@@ -62,6 +62,8 @@ class BrowserSmokeTest {
             val edit = device.findObjects(By.clazz("android.widget.EditText"))
             edit[edit.size-2].text = "Example edited"
             click(str(R.string.save))
+            val editDeadline = System.currentTimeMillis() + 5000
+            while (app.mannybrowser.data.Stores(context).shortcuts().single().name != "Example edited" && System.currentTimeMillis() < editDeadline) Thread.sleep(50)
             assertEquals("Edit not persisted", "Example edited", app.mannybrowser.data.Stores(context).shortcuts().single().name)
             context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
             assertTrue("Saved shortcut absent after activity restart", visible("Example edited"))
@@ -145,7 +147,7 @@ class BrowserSmokeTest {
             device.pressBack()
             clickDesc("Menu")
             click(str(R.string.share))
-            assertTrue("Share chooser not opened", device.wait(Until.hasObject(By.pkg("android")), 5000))
+            assertTrue("Share chooser not opened", device.wait(Until.hasObject(By.pkg("com.android.intentresolver")), 5000))
             shot("12-share-chooser")
             device.pressBack()
             clickDesc("Tabs")
@@ -180,7 +182,7 @@ class BrowserSmokeTest {
             assertTrue("Fixture not loaded", visible("Manny fixture"))
             clickDesc("Menu")
             click(str(R.string.share))
-            assertTrue("Share chooser absent", device.wait(Until.hasObject(By.pkg("android")), 10000))
+            assertTrue("Share chooser absent", device.wait(Until.hasObject(By.pkg("com.android.intentresolver")), 10000))
             shot("23-share-standalone")
             device.pressBack()
             clickDesc("Tabs")
