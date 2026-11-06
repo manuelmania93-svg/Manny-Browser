@@ -44,7 +44,7 @@ fun MenuSheet(state: BrowserState) {
         MenuItem(Icons.Filled.DarkMode, R.string.dark_mode) { it.toggleDark() },
         MenuItem(Icons.Filled.FindInPage, R.string.find_in_page) { it.findBarOpen = true },
         MenuItem(Icons.Filled.Share, R.string.share) { it.shareCurrent() },
-        MenuItem(Icons.Filled.Fullscreen, R.string.fullscreen) { it.fullscreen = true }
+        MenuItem(Icons.Filled.Fullscreen, R.string.fullscreen) { it.enterFullscreen() }
     )
     ModalBottomSheet(onDismissRequest = { state.menuOpen = false }) {
         LazyVerticalGrid(

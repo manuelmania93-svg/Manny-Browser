@@ -197,6 +197,18 @@ class BrowserState(private val context: Context) {
         shortcuts = stores.shortcuts()
     }
 
+    fun enterFullscreen() {
+        findBarOpen = false
+        currentTab?.webView?.clearMatches()
+        (context as? android.app.Activity)?.let { activity ->
+            val focus = activity.currentFocus
+            (context.getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
+                .hideSoftInputFromWindow(focus?.windowToken, 0)
+            focus?.clearFocus()
+        }
+        fullscreen = true
+    }
+
     fun shareCurrent() {
         val u = currentTab?.url ?: return
         val i = Intent(Intent.ACTION_SEND)
