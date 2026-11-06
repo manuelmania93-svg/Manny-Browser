@@ -87,7 +87,15 @@ class BrowserState(private val context: Context) {
 
     fun newTab(url: String? = null): Tab {
         captureCurrentPreview()
-        val wv = WebView(context)
+        val wv = object : WebView(context) {
+            override fun onKeyPreIme(keyCode: Int, event: android.view.KeyEvent): Boolean {
+                if (fullscreen && keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+                    if (event.action == android.view.KeyEvent.ACTION_UP) fullscreen = false
+                    return true
+                }
+                return super.onKeyPreIme(keyCode, event)
+            }
+        }
         val tab = Tab(nextId++, wv)
         wv.settings.javaScriptEnabled = true
         wv.settings.domStorageEnabled = true
