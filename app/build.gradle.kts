@@ -12,11 +12,38 @@ android {
         applicationId = "app.mannybrowser"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1"
+        // CI stamps versionCode from the Actions run number (-PmannyVersionCode=N) so every
+        // published build is strictly newer - the in-app updater compares versionCode,
+        // not versionName. max() with the source floor matters: if CI run numbering ever
+        // resets, raising this floor above the last published versionCode keeps updates
+        // flowing instead of stalling below the installed base (installed builds carry 1).
+        val stampedVersionCode = providers.gradleProperty("mannyVersionCode").orNull?.toIntOrNull() ?: 0
+        versionCode = maxOf(stampedVersionCode, 2)
+        // Semantic version. Every merge intended to produce a release bumps this; the
+        // publish job skips cleanly when the tag exists.
+        versionName = "0.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (!System.getenv("MANNY_KEYSTORE_PATH").isNullOrBlank()) {
+            create("stable") {
+                storeFile = file(System.getenv("MANNY_KEYSTORE_PATH"))
+                storePassword = System.getenv("MANNY_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("MANNY_KEY_ALIAS")
+                keyPassword = System.getenv("MANNY_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            // When CI restores the stable key, the debug variant (the shipped package
+            // app.mannybrowser) is signed with it; local builds keep the per-machine key.
+            if (!System.getenv("MANNY_KEYSTORE_PATH").isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("stable")
+            }
+        }
+    }
     buildFeatures { compose = true }
 
     compileOptions {
