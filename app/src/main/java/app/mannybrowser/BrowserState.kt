@@ -26,8 +26,14 @@ import app.mannybrowser.data.Bookmark
 import app.mannybrowser.data.HistoryEntry
 import app.mannybrowser.data.Shortcut
 import app.mannybrowser.data.Stores
+import app.mannybrowser.update.AppUpdate
+import app.mannybrowser.update.UpdateState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
-enum class Overlay { NONE, TABS, BOOKMARKS, HISTORY, DOWNLOADS }
+enum class Overlay { NONE, TABS, BOOKMARKS, HISTORY, DOWNLOADS, UPDATE }
 
 class Tab(val id: Long, val webView: WebView) {
     var url by mutableStateOf<String?>(null)
@@ -50,6 +56,78 @@ class BrowserState(private val context: Context) {
     var bookmarks by mutableStateOf(stores.bookmarks())
     var history by mutableStateOf(stores.history())
     private var nextId = 1L
+
+    // --- In-app update flow (same semantics as File Explorer CL: user-tap only, never silent) ---
+    private val updateScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    var updateState by mutableStateOf<UpdateState>(UpdateState.Idle)
+        private set
+    val installedVersionCode: Long = AppUpdate.currentVersionCode(context)
+    val installedVersionName: String = AppUpdate.currentVersionName(context)
+    private var pendingGrantReturn = false
+    private var updateCheckedThisProcess = false
+
+    fun checkForUpdate(silent: Boolean) {
+        if (updateState == UpdateState.Checking || updateState is UpdateState.Downloading) return
+        updateState = UpdateState.Checking
+        updateScope.launch {
+            val latest = AppUpdate.fetchLatest()
+            updateState = when {
+                latest == null -> if (silent) UpdateState.Idle else UpdateState.Failed(null)
+                AppUpdate.isNewer(latest, installedVersionCode) -> UpdateState.Available(latest)
+                else -> if (silent) UpdateState.Idle else UpdateState.UpToDate
+            }
+        }
+    }
+
+    fun checkForUpdateOnce() {
+        if (!updateCheckedThisProcess) {
+            updateCheckedThisProcess = true
+            checkForUpdate(silent = true)
+        }
+    }
+
+    fun downloadUpdate() {
+        val info = when (val s = updateState) {
+            is UpdateState.Available -> s.info
+            is UpdateState.Failed -> s.info
+            else -> null
+        } ?: return
+        updateScope.launch {
+            updateState = UpdateState.Downloading(info, 0)
+            updateState = runCatching {
+                AppUpdate.download(context, info) { percent ->
+                    updateState = UpdateState.Downloading(info, percent)
+                }
+            }.fold(
+                onSuccess = { apk ->
+                    if (AppUpdate.verifyApk(context, apk, installedVersionCode)) UpdateState.ReadyToInstall(info, apk)
+                    else UpdateState.Failed(info)
+                },
+                onFailure = { UpdateState.Failed(info) },
+            )
+        }
+    }
+
+    fun installUpdate() {
+        val ready = updateState as? UpdateState.ReadyToInstall ?: return
+        if (AppUpdate.canInstall(context)) {
+            AppUpdate.promptInstall(context, ready.apk)
+        } else {
+            // First update needs the one-time unknown-sources grant; onResumeAfterGrant
+            // offers the install sheet straight away when the user returns.
+            pendingGrantReturn = true
+            AppUpdate.openUnknownSourcesSettings(context)
+        }
+    }
+
+    fun onResumeAfterGrant() {
+        if (!pendingGrantReturn) return
+        pendingGrantReturn = false
+        val state = updateState
+        if (AppUpdate.shouldAutoPromptOnResume(true, state, AppUpdate.canInstall(context))) {
+            AppUpdate.promptInstall(context, (state as UpdateState.ReadyToInstall).apk)
+        }
+    }
 
     val currentTab: Tab? get() = tabs.getOrNull(currentTabIndex)
 

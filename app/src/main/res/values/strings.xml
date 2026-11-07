@@ -23,4 +23,18 @@
     <string name="no_downloads">No downloads yet</string>
     <string name="clear_history">Clear history</string>
     <string name="loading_page">Loading page</string>
+    <string name="update_title">App update</string>
+    <string name="update_current">Installed: %1$s (%2$d)</string>
+    <string name="update_check">Check for updates</string>
+    <string name="update_check_again">Check again</string>
+    <string name="update_checking">Checking for updates…</string>
+    <string name="update_latest">You\'re on the latest version.</string>
+    <string name="update_available">Update available: %1$s (%2$d)</string>
+    <string name="update_download">Download update</string>
+    <string name="update_downloading">Downloading update… %1$d%%</string>
+    <string name="update_ready">Update ready to install.</string>
+    <string name="update_install">Install update</string>
+    <string name="update_failed_check">Couldn\'t check for updates. Check your connection.</string>
+    <string name="update_failed_verify">Update failed. The download could not be verified, so nothing was installed.</string>
+    <string name="update_try_again">Try again</string>
 </resources>

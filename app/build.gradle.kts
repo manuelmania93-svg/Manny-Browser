@@ -30,6 +30,9 @@ android {
 dependencies {
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test:rules:1.6.1")
+    testImplementation("junit:junit:4.13.2")
+    // Real org.json on the JVM so the update-manifest parser is unit-testable.
+    testImplementation("org.json:json:20240303")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
     implementation(platform("androidx.compose:compose-bom:2024.09.00"))

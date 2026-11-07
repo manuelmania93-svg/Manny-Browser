@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.FindInPage
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +45,8 @@ fun MenuSheet(state: BrowserState) {
         MenuItem(Icons.Filled.DarkMode, R.string.dark_mode) { it.toggleDark() },
         MenuItem(Icons.Filled.FindInPage, R.string.find_in_page) { it.findBarOpen = true },
         MenuItem(Icons.Filled.Share, R.string.share) { it.shareCurrent() },
-        MenuItem(Icons.Filled.Fullscreen, R.string.fullscreen) { it.enterFullscreen() }
+        MenuItem(Icons.Filled.Fullscreen, R.string.fullscreen) { it.enterFullscreen() },
+        MenuItem(Icons.Filled.SystemUpdateAlt, R.string.update_title) { it.overlay = Overlay.UPDATE }
     )
     ModalBottomSheet(onDismissRequest = { state.menuOpen = false }) {
         LazyVerticalGrid(

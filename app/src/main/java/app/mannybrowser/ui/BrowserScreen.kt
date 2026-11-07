@@ -205,6 +205,7 @@ fun BrowserScreen(state: BrowserState) {
             Overlay.BOOKMARKS -> BookmarksScreen(state)
             Overlay.HISTORY -> HistoryScreen(state)
             Overlay.DOWNLOADS -> DownloadsScreen(state)
+            Overlay.UPDATE -> UpdateOverlay(state)
             Overlay.NONE -> { }
         }
 
