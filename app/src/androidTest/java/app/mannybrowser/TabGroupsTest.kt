@@ -31,12 +31,30 @@ class TabGroupsTest {
         }
         return null
     }
+    private fun recordState(label: String) {
+        var snapshot = "no resumed activity"
+        inst.runOnMainSync {
+            val activity = androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry.getInstance()
+                .getActivitiesInStage(androidx.test.runner.lifecycle.Stage.RESUMED).filterIsInstance<MainActivity>().firstOrNull()
+            if (activity != null) {
+                val field = MainActivity::class.java.getDeclaredField("state").apply { isAccessible = true }
+                val state = field.get(activity) as BrowserState
+                snapshot = "overlay=${state.overlay} current=${state.currentTab?.id} " +
+                    "tabs=" + state.tabs.joinToString { "${it.id}:${it.url}" }
+            }
+        }
+        val dir = File(context.getExternalFilesDir(null), "manny-evidence").apply { mkdirs() }
+        File(dir, "${context.resources.configuration.locales[0].language}-group-state.txt")
+            .appendText("$label: $snapshot\n")
+    }
     private fun click(text: String) {
         assertTrue("Missing $text", visible(text))
         val bounds = boundsFromSnapshot("text", text)
         assertNotNull("Snapshot contains $text", bounds)
+        recordState("before text=$text bounds=$bounds")
         device.click(bounds!!.centerX(), bounds.centerY())
         device.waitForIdle(); Thread.sleep(500)
+        recordState("after text=$text")
     }
     private fun closeFirstMember() {
         val bounds = boundsFromSnapshot("content-desc", context.getString(R.string.close_tab))
@@ -53,6 +71,7 @@ class TabGroupsTest {
         device.waitForIdle(); Thread.sleep(750)
     }
     private fun shot(name: String) {
+        recordState("screenshot $name")
         val dir = File(context.getExternalFilesDir(null), "manny-evidence").apply { mkdirs() }
         val lang = context.resources.configuration.locales[0].language
         device.takeScreenshot(File(dir, "$lang-group-$name.png"))
