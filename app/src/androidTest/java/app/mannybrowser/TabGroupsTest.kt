@@ -18,12 +18,30 @@ class TabGroupsTest {
     private fun visible(text: String) = device.wait(Until.hasObject(By.text(text)), 15000)
     private fun click(text: String) {
         assertTrue("Missing $text", visible(text))
-        repeat(5) {
-            try { device.findObject(By.text(text))?.let { node -> node.click(); device.waitForIdle(); Thread.sleep(500); return } }
-            catch (_: StaleObjectException) { }
-            Thread.sleep(300)
+        repeat(8) {
+            try {
+                val bounds = device.findObject(By.text(text))?.visibleBounds
+                if (bounds != null) {
+                    device.click(bounds.centerX(), bounds.centerY())
+                    device.waitForIdle(); Thread.sleep(500); return
+                }
+            } catch (_: StaleObjectException) { }
+            Thread.sleep(200)
         }
         fail("Could not click $text")
+    }
+    private fun closeFirstMember() {
+        repeat(8) {
+            try {
+                val bounds = device.findObjects(By.desc(context.getString(R.string.close_tab))).firstOrNull()?.visibleBounds
+                if (bounds != null) {
+                    device.click(bounds.centerX(), bounds.centerY())
+                    device.waitForIdle(); Thread.sleep(500); return
+                }
+            } catch (_: StaleObjectException) { }
+            Thread.sleep(200)
+        }
+        fail("Could not activate member close button")
     }
     private fun tabs() {
         val button = device.wait(Until.findObject(By.desc("Tabs")), 15000)
@@ -89,7 +107,7 @@ class TabGroupsTest {
         assertTrue("Member selected and overview dismissed", device.wait(Until.gone(By.text(context.getString(R.string.all_tabs))), 5000))
         assertTrue("Browser toolbar visible", device.wait(Until.hasObject(By.desc("Tabs")), 5000))
         tabs(); click("localhost")
-        device.findObjects(By.desc(context.getString(R.string.close_tab))).first().click()
+        closeFirstMember()
         assertTrue("One member left collapses to normal overview", device.wait(Until.gone(By.text(context.getString(R.string.all_tabs))), 5000))
         assertFalse("No grouped localhost card after closing member", device.hasObject(By.text("localhost")))
         shot("after-close")
