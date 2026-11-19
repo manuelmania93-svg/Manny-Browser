@@ -37,6 +37,16 @@ class TabGroupsTest {
         }
         return null
     }
+    private fun waitForGroupCard(): android.graphics.Rect? {
+        val deadline = System.currentTimeMillis() + 10000
+        do {
+            val card = boundsFromSnapshot("text", "localhost", clickableParent = true)
+            if (card != null) return card
+            Thread.sleep(100)
+        } while (System.currentTimeMillis() < deadline)
+        shot("missing-overview-card")
+        return null
+    }
     private fun recordState(label: String) {
         var snapshot = "no resumed activity"
         inst.runOnMainSync {
@@ -127,7 +137,7 @@ class TabGroupsTest {
             shot("members-$cycle")
             device.pressBack()
             assertTrue("Cycle $cycle Back leaves detail", device.wait(Until.gone(By.text(allTabs)), 10000))
-            assertNotNull("Cycle $cycle clickable group card", boundsFromSnapshot("text", "localhost", clickableParent = true))
+            assertNotNull("Cycle $cycle clickable group card", waitForGroupCard())
             shot("back-$cycle")
         }
         click("localhost")
