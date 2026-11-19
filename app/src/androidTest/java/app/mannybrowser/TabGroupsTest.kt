@@ -46,8 +46,11 @@ class TabGroupsTest {
         device.waitForIdle(); Thread.sleep(500)
     }
     private fun tabs() {
-        val button = device.wait(Until.findObject(By.desc("Tabs")), 15000)
-        assertNotNull("Tabs button in browser", button); button!!.click(); device.waitForIdle()
+        assertTrue("Tabs button in browser", device.wait(Until.hasObject(By.desc("Tabs")), 15000))
+        val bounds = boundsFromSnapshot("content-desc", "Tabs")
+        assertNotNull("Tabs snapshot", bounds)
+        device.click(bounds!!.centerX(), bounds.centerY())
+        device.waitForIdle(); Thread.sleep(750)
     }
     private fun shot(name: String) {
         val dir = File(context.getExternalFilesDir(null), "manny-evidence").apply { mkdirs() }
@@ -104,10 +107,11 @@ class TabGroupsTest {
         tabs(); click("localhost")
         closeFirstMember()
         assertTrue("One member left collapses to normal overview", device.wait(Until.gone(By.text(context.getString(R.string.all_tabs))), 5000))
-        assertFalse("No grouped localhost card after closing member", device.hasObject(By.text("localhost")))
+        assertTrue("No grouped localhost card after closing member", device.wait(Until.gone(By.text("localhost")), 10000))
         shot("after-close")
         click(context.getString(R.string.close_all))
         tabs()
+        assertTrue("Fresh tab close button shown", device.wait(Until.hasObject(By.desc(context.getString(R.string.close_tab))), 10000))
         assertEquals("Close all leaves one fresh tab", 1, device.findObjects(By.desc(context.getString(R.string.close_tab))).size)
         shot("close-all")
     }
