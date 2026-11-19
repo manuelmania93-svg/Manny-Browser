@@ -16,32 +16,34 @@ class TabGroupsTest {
     private val context = inst.targetContext
     private val device = UiDevice.getInstance(inst)
     private fun visible(text: String) = device.wait(Until.hasObject(By.text(text)), 15000)
+    private fun boundsFromSnapshot(attribute: String, value: String): android.graphics.Rect? {
+        val bytes = java.io.ByteArrayOutputStream()
+        device.dumpWindowHierarchy(bytes)
+        val xml = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder()
+            .parse(java.io.ByteArrayInputStream(bytes.toByteArray()))
+        val nodes = xml.getElementsByTagName("node")
+        for (i in 0 until nodes.length) {
+            val node = nodes.item(i) as org.w3c.dom.Element
+            if (node.getAttribute(attribute) == value) {
+                val n = Regex("[0-9]+").findAll(node.getAttribute("bounds")).map { it.value.toInt() }.toList()
+                if (n.size == 4 && n[2] > n[0] && n[3] > n[1]) return android.graphics.Rect(n[0],n[1],n[2],n[3])
+            }
+        }
+        return null
+    }
     private fun click(text: String) {
         assertTrue("Missing $text", visible(text))
-        repeat(8) {
-            try {
-                val bounds = device.findObject(By.text(text))?.visibleBounds
-                if (bounds != null) {
-                    device.click(bounds.centerX(), bounds.centerY())
-                    device.waitForIdle(); Thread.sleep(500); return
-                }
-            } catch (_: StaleObjectException) { }
-            Thread.sleep(200)
-        }
-        fail("Could not click $text")
+        val bounds = boundsFromSnapshot("text", text)
+        assertNotNull("Snapshot contains $text", bounds)
+        device.click(bounds!!.centerX(), bounds.centerY())
+        device.waitForIdle(); Thread.sleep(500)
     }
     private fun closeFirstMember() {
-        repeat(8) {
-            try {
-                val bounds = device.findObjects(By.desc(context.getString(R.string.close_tab))).firstOrNull()?.visibleBounds
-                if (bounds != null) {
-                    device.click(bounds.centerX(), bounds.centerY())
-                    device.waitForIdle(); Thread.sleep(500); return
-                }
-            } catch (_: StaleObjectException) { }
-            Thread.sleep(200)
-        }
-        fail("Could not activate member close button")
+        val bounds = boundsFromSnapshot("content-desc", context.getString(R.string.close_tab))
+        if (bounds == null) shot("missing-close")
+        assertNotNull("Snapshot contains member close", bounds)
+        device.click(bounds!!.centerX(), bounds.centerY())
+        device.waitForIdle(); Thread.sleep(500)
     }
     private fun tabs() {
         val button = device.wait(Until.findObject(By.desc("Tabs")), 15000)
@@ -93,14 +95,7 @@ class TabGroupsTest {
         device.pressBack()
         assertTrue("Back returns to grouped overview", visible("localhost"))
         click("localhost")
-        device.waitForIdle()
-        Thread.sleep(500)
-        var first: android.graphics.Rect? = null
-        repeat(5) {
-            if (first == null) try {
-                first = device.findObjects(By.desc(context.getString(R.string.close_tab))).first().visibleBounds
-            } catch (_: StaleObjectException) { Thread.sleep(300) }
-        }
+        val first = boundsFromSnapshot("content-desc", context.getString(R.string.close_tab))
         assertNotNull("Member card bounds available", first)
         // Select the first member body, not its close button.
         device.click((device.displayWidth / 4), first!!.bottom + 60)
