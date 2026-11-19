@@ -17,7 +17,13 @@ class TabGroupsTest {
     private val device = UiDevice.getInstance(inst)
     private fun visible(text: String) = device.wait(Until.hasObject(By.text(text)), 15000)
     private fun click(text: String) {
-        assertTrue("Missing $text", visible(text)); device.findObject(By.text(text)).click(); device.waitForIdle()
+        assertTrue("Missing $text", visible(text))
+        repeat(5) {
+            try { device.findObject(By.text(text))?.let { node -> node.click(); device.waitForIdle(); Thread.sleep(500); return } }
+            catch (_: StaleObjectException) { }
+            Thread.sleep(300)
+        }
+        fail("Could not click $text")
     }
     private fun tabs() {
         val button = device.wait(Until.findObject(By.desc("Tabs")), 15000)
@@ -69,9 +75,17 @@ class TabGroupsTest {
         device.pressBack()
         assertTrue("Back returns to grouped overview", visible("localhost"))
         click("localhost")
-        val first = device.findObjects(By.desc(context.getString(R.string.close_tab))).first().visibleBounds
+        device.waitForIdle()
+        Thread.sleep(500)
+        var first: android.graphics.Rect? = null
+        repeat(5) {
+            if (first == null) try {
+                first = device.findObjects(By.desc(context.getString(R.string.close_tab))).first().visibleBounds
+            } catch (_: StaleObjectException) { Thread.sleep(300) }
+        }
+        assertNotNull("Member card bounds available", first)
         // Select the first member body, not its close button.
-        device.click((device.displayWidth / 4), first.bottom + 60)
+        device.click((device.displayWidth / 4), first!!.bottom + 60)
         assertTrue("Member selected and overview dismissed", device.wait(Until.gone(By.text(context.getString(R.string.all_tabs))), 5000))
         assertTrue("Browser toolbar visible", device.wait(Until.hasObject(By.desc("Tabs")), 5000))
         tabs(); click("localhost")
