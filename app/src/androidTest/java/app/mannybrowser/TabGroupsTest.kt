@@ -16,15 +16,21 @@ class TabGroupsTest {
     private val context = inst.targetContext
     private val device = UiDevice.getInstance(inst)
     private fun visible(text: String) = device.wait(Until.hasObject(By.text(text)), 15000)
-    private fun boundsFromSnapshot(attribute: String, value: String): android.graphics.Rect? {
+    private fun boundsFromSnapshot(attribute: String, value: String, clickableParent: Boolean = false): android.graphics.Rect? {
         val bytes = java.io.ByteArrayOutputStream()
         device.dumpWindowHierarchy(bytes)
         val xml = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder()
             .parse(java.io.ByteArrayInputStream(bytes.toByteArray()))
         val nodes = xml.getElementsByTagName("node")
         for (i in 0 until nodes.length) {
-            val node = nodes.item(i) as org.w3c.dom.Element
+            var node = nodes.item(i) as org.w3c.dom.Element
             if (node.getAttribute(attribute) == value) {
+                if (clickableParent) {
+                    while (node.getAttribute("clickable") != "true") {
+                        node = node.parentNode as? org.w3c.dom.Element ?: break
+                    }
+                    if (node.getAttribute("clickable") != "true") continue
+                }
                 val n = Regex("[0-9]+").findAll(node.getAttribute("bounds")).map { it.value.toInt() }.toList()
                 if (n.size == 4 && n[2] > n[0] && n[3] > n[1]) return android.graphics.Rect(n[0],n[1],n[2],n[3])
             }
@@ -49,7 +55,7 @@ class TabGroupsTest {
     }
     private fun click(text: String) {
         assertTrue("Missing $text", visible(text))
-        val bounds = boundsFromSnapshot("text", text)
+        val bounds = boundsFromSnapshot("text", text, clickableParent = true)
         assertNotNull("Snapshot contains $text", bounds)
         recordState("before text=$text bounds=$bounds")
         device.click(bounds!!.centerX(), bounds.centerY())
@@ -110,12 +116,20 @@ class TabGroupsTest {
         assertEquals("One card for both localhost tabs", 1, device.findObjects(By.text("localhost")).size)
         assertTrue("Count visible", visible(context.getString(R.string.tab_count, 2)))
         shot("overview")
-        click("localhost")
-        assertTrue("Group details has Back to all", visible(context.getString(R.string.all_tabs)))
-        assertEquals("One close per member", 2, device.findObjects(By.desc(context.getString(R.string.close_tab))).size)
-        shot("members")
-        device.pressBack()
-        assertTrue("Back returns to grouped overview", visible("localhost"))
+        val allTabs = context.getString(R.string.all_tabs)
+        // The hostname also exists in the detail header. Its presence is NOT an
+        // acknowledgement that Back completed. Wait for the detail-only control
+        // to disappear, then require a clickable overview card before proceeding.
+        repeat(5) { cycle ->
+            click("localhost")
+            assertTrue("Cycle $cycle opens members", visible(allTabs))
+            assertEquals("One close per member", 2, device.findObjects(By.desc(context.getString(R.string.close_tab))).size)
+            shot("members-$cycle")
+            device.pressBack()
+            assertTrue("Cycle $cycle Back leaves detail", device.wait(Until.gone(By.text(allTabs)), 10000))
+            assertNotNull("Cycle $cycle clickable group card", boundsFromSnapshot("text", "localhost", clickableParent = true))
+            shot("back-$cycle")
+        }
         click("localhost")
         assertTrue("Member detail before selection", visible(context.getString(R.string.all_tabs)))
         val first = boundsFromSnapshot("content-desc", context.getString(R.string.close_tab))
@@ -127,7 +141,8 @@ class TabGroupsTest {
         shot("member-selected")
         tabs()
         shot("reopened-overview")
-        if (!device.hasObject(By.text(context.getString(R.string.all_tabs)))) click("localhost")
+        assertTrue("Reopened overview is not detail", device.wait(Until.gone(By.text(allTabs)), 10000))
+        click("localhost")
         assertTrue("Member detail reopened before close", visible(context.getString(R.string.all_tabs)))
         shot("before-close")
         closeFirstMember()
