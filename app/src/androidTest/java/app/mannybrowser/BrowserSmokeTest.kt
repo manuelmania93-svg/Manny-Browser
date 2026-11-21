@@ -114,6 +114,11 @@ class BrowserSmokeTest {
             shot("04-loaded")
             // Top star toggles current page, bottom star opens list.
             device.findObjects(By.desc(str(R.string.bookmarks))).first().click()
+            // The star's Compose handler persists on the app thread after uiautomator's
+            // click returns; poll instead of asserting on the same millisecond.
+            val bookmarkDeadline = System.currentTimeMillis() + 5000
+            while (!app.mannybrowser.data.Stores(context).bookmarks().any { it.url.startsWith("https://example.com") }
+                && System.currentTimeMillis() < bookmarkDeadline) Thread.sleep(50)
             assertTrue("Bookmark was not persisted", app.mannybrowser.data.Stores(context).bookmarks().any { it.url.startsWith("https://example.com") })
             device.findObjects(By.desc(str(R.string.bookmarks))).last().click()
             assertTrue("Bookmark list missing page", visible("Example Domain"))
@@ -133,6 +138,9 @@ class BrowserSmokeTest {
             device.pressBack()
             clickDesc("Menu")
             click(str(R.string.dark_mode))
+            val darkDeadline = System.currentTimeMillis() + 5000
+            while (!context.getSharedPreferences("manny",0).contains("dark")
+                && System.currentTimeMillis() < darkDeadline) Thread.sleep(50)
             assertTrue("Dark-mode override missing", context.getSharedPreferences("manny",0).contains("dark"))
             shot("09-theme")
             clickDesc("Menu")
