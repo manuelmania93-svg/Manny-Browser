@@ -168,3 +168,10 @@ private fun queryDownloads(context: Context): List<String> {
     } catch (_: Exception) { }
     return out
 }
+
+@Composable
+fun UpdateOverlay(state: BrowserState) {
+    ListShell(stringResource(R.string.update_title), state) {
+        UpdateScreen(state)
+    }
+}

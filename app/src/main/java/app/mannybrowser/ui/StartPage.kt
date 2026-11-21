@@ -22,6 +22,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.foundation.Image
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import app.mannybrowser.data.StartTile
+import app.mannybrowser.data.StartTiles
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +59,8 @@ private fun tileColor(name: String): Color =
 fun StartPage(state: BrowserState) {
     var showAdd by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Shortcut?>(null) }
+    var removingFavorite by remember { mutableStateOf<StartTile?>(null) }
+    val tick = state.faviconTick
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(5),
@@ -60,26 +68,39 @@ fun StartPage(state: BrowserState) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(state.shortcuts) { s ->
+        items(StartTiles.merge(state.shortcuts, state.bookmarks), key = { it.url }) { t ->
+            val icon = remember(t.url, tick) { state.favicons.load(t.url) }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.combinedClickable(
-                    onClick = { state.navigate(s.url) },
-                    onLongClick = { editing = s }
+                    onClick = { state.navigate(t.url) },
+                    onLongClick = {
+                        if (t.bookmark) removingFavorite = t
+                        else editing = Shortcut(t.name, t.url)
+                    }
                 )
             ) {
                 Box(
-                    Modifier.size(56.dp).background(tileColor(s.name), RoundedCornerShape(50)),
+                    Modifier.size(56.dp).background(tileColor(t.name), RoundedCornerShape(50)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        s.name.firstOrNull()?.uppercase() ?: "?",
-                        color = Color.White,
-                        fontSize = 24.sp
-                    )
+                    if (icon != null) {
+                        Image(
+                            icon.asImageBitmap(),
+                            contentDescription = stringResource(R.string.site_icon),
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(50))
+                        )
+                    } else {
+                        Text(
+                            t.name.firstOrNull()?.uppercase() ?: "?",
+                            color = Color.White,
+                            fontSize = 24.sp
+                        )
+                    }
                 }
                 Text(
-                    s.name,
+                    t.name,
                     style = MaterialTheme.typography.labelSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -122,6 +143,23 @@ fun StartPage(state: BrowserState) {
             onSave = { name, url ->
                 state.addShortcut(name, url)
                 showAdd = false
+            }
+        )
+    }
+
+    removingFavorite?.let { t ->
+        AlertDialog(
+            onDismissRequest = { removingFavorite = null },
+            title = { Text(stringResource(R.string.remove_favorite)) },
+            text = { Text(t.name) },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.removeBookmark(t.url)
+                    removingFavorite = null
+                }) { Text(stringResource(R.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { removingFavorite = null }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }

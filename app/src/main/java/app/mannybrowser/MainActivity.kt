@@ -6,6 +6,10 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -23,6 +27,16 @@ class MainActivity : ComponentActivity() {
         setContent {
             MannyTheme(darkOverride = state.darkModeOverride) {
                 BrowserScreen(state)
+            }
+            // In-app update: one silent check per process start; offline or no manifest shows nothing.
+            androidx.compose.runtime.LaunchedEffect(Unit) { state.checkForUpdateOnce() }
+            val updateLifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(updateLifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) state.onResumeAfterGrant()
+                }
+                updateLifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { updateLifecycleOwner.lifecycle.removeObserver(observer) }
             }
             androidx.compose.runtime.LaunchedEffect(state.fullscreen) {
                 val controller = WindowInsetsControllerCompat(window, window.decorView)
