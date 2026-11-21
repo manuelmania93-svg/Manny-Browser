@@ -39,4 +39,8 @@
     <string name="update_failed_check">Updatesuche fehlgeschlagen. Verbindung prüfen.</string>
     <string name="update_failed_verify">Update fehlgeschlagen. Der Download konnte nicht verifiziert werden, es wurde nichts installiert.</string>
     <string name="update_try_again">Erneut versuchen</string>
+    <string name="all_tabs">Alle Tabs</string>
+    <string name="tab_count">%1$d Tabs</string>
+    <string name="close_tab">Tab schließen</string>
+    <string name="open_tab_group">Gruppe öffnen</string>
 </resources>

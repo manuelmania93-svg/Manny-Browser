@@ -39,4 +39,8 @@
     <string name="update_failed_check">Couldn\'t check for updates. Check your connection.</string>
     <string name="update_failed_verify">Update failed. The download could not be verified, so nothing was installed.</string>
     <string name="update_try_again">Try again</string>
+    <string name="all_tabs">All tabs</string>
+    <string name="tab_count">%1$d tabs</string>
+    <string name="close_tab">Close tab</string>
+    <string name="open_tab_group">Open group</string>
 </resources>
