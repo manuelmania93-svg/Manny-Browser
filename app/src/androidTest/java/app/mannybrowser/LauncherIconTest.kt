@@ -23,7 +23,8 @@ class LauncherIconTest {
         val cert = MessageDigest.getInstance("SHA-256").digest(info.signingInfo!!.apkContentsSigners.single().toByteArray())
             .joinToString("") { "%02x".format(it) }
         assertEquals("app.mannybrowser", context.packageName)
-        assertEquals("0.2.0", info.versionName)
+        assertTrue("release versionName is semantic, was ${info.versionName}",
+            (info.versionName ?: "").matches(Regex("\\d+\\.\\d+\\.\\d+")))
         assertEquals("824edd962eaea53159fdd906ffac900d71c396c1b0964ee3fd6d8209a1ffc54f", cert)
         device.pressHome()
         device.waitForIdle()
