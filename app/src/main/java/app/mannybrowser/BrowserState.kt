@@ -45,6 +45,9 @@ class Tab(val id: Long, val webView: WebView) {
 @SuppressLint("SetJavaScriptEnabled")
 class BrowserState(private val context: Context) {
     val stores = Stores(context)
+    val favicons = app.mannybrowser.data.FaviconStore(context)
+    /** Bumped whenever a favicon is saved so start-page tiles reload their icon. */
+    var faviconTick by mutableIntStateOf(0)
     var darkModeOverride by mutableStateOf(stores.darkModeOverride)
     val tabs = mutableStateListOf<Tab>()
     var currentTabIndex by mutableIntStateOf(-1)
@@ -194,7 +197,13 @@ class BrowserState(private val context: Context) {
             }
         }
         wv.webChromeClient = object : WebChromeClient() {
-            override fun onReceivedIcon(view: WebView, icon: Bitmap) { tab.favicon = icon }
+            override fun onReceivedIcon(view: WebView, icon: Bitmap) {
+                tab.favicon = icon
+                view.url?.let { pageUrl ->
+                    favicons.save(pageUrl, icon)
+                    faviconTick++
+                }
+            }
             override fun onReceivedTitle(view: WebView, title: String) { tab.title = title }
         }
         wv.setDownloadListener { dlUrl, userAgent, contentDisposition, mimeType, _ ->
@@ -254,7 +263,13 @@ class BrowserState(private val context: Context) {
         val t = currentTab ?: return
         val u = t.url ?: return
         if (stores.isBookmarked(u)) stores.removeBookmark(u)
-        else stores.addBookmark(t.title.ifBlank { u }, u)
+        else {
+            stores.addBookmark(t.title.ifBlank { u }, u)
+            t.favicon?.let { icon ->
+                favicons.save(u, icon)
+                faviconTick++
+            }
+        }
         bookmarks = stores.bookmarks()
     }
 
