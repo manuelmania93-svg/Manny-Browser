@@ -114,4 +114,8 @@ jobs:
           name: manny-debug-apk
           path: apk
       - name: Gate and publish
-        run: bash .github/scripts/publish-release.sh apk/app-debug.apk
+        run: |
+          APK_PATH="$(find apk -name 'app-debug.apk' -path '*/apk/debug/*' | head -1)"
+          test -n "$APK_PATH" || { echo "release APK not found in artifact"; exit 1; }
+          echo "publishing $APK_PATH"
+          bash .github/scripts/publish-release.sh "$APK_PATH"
