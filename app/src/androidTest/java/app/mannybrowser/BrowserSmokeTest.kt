@@ -25,18 +25,32 @@ class BrowserSmokeTest {
         device.dumpWindowHierarchy(File(dir, "$language-$name.xml"))
     }
     private fun visible(text: String) = device.wait(Until.hasObject(By.textContains(text)), 20000)
-    private fun click(text: String) { assertTrue("Missing $text", visible(text)); device.findObject(By.text(text)).click(); device.waitForIdle() }
-    private fun clickDesc(description: String) {
-        val target = device.wait(Until.findObject(By.desc(description)), 10000)
-        assertNotNull("Missing control: $description", target)
-        if (description == "Tabs") {
-            val bounds = target!!.visibleBounds
-            assertTrue("Tab control must be in top toolbar", bounds.centerY() < device.displayHeight / 4)
-            assertEquals("Only one tab control", 1, device.findObjects(By.desc("Tabs")).size)
-            shot("26-top-tab-control")
+    private fun click(text: String) {
+        assertTrue("Missing $text", visible(text))
+        repeat(3) {
+            try { device.findObject(By.text(text))?.let { node -> node.click(); device.waitForIdle(); return } }
+            catch (_: androidx.test.uiautomator.StaleObjectException) { }
+            Thread.sleep(250)
         }
-        target!!.click()
-        device.waitForIdle()
+        fail("Could not click $text")
+    }
+    private fun clickDesc(description: String) {
+        assertTrue("Missing control: $description", device.wait(Until.hasObject(By.desc(description)), 15000))
+        repeat(3) {
+            try {
+                val target = device.findObject(By.desc(description))
+                if (target != null) {
+                    if (description == "Tabs") {
+                        assertTrue("Tab control must be in top toolbar", target.visibleBounds.centerY() < device.displayHeight / 4)
+                        assertEquals("Only one tab control", 1, device.findObjects(By.desc("Tabs")).size)
+                        shot("26-top-tab-control")
+                    }
+                    target.click(); device.waitForIdle(); Thread.sleep(350); return
+                }
+            } catch (_: androidx.test.uiautomator.StaleObjectException) { }
+            Thread.sleep(250)
+        }
+        fail("Could not click control: $description")
     }
     private fun launch() {
         context.getSharedPreferences("manny",0).edit().clear().commit()
