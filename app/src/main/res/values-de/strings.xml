@@ -9,6 +9,8 @@
     <string name="cancel">Abbrechen</string>
     <string name="save">Speichern</string>
     <string name="delete">Löschen</string>
+    <string name="remove_favorite">Favorit entfernen?</string>
+    <string name="site_icon">Seitensymbol</string>
     <string name="bookmarks">Lesezeichen</string>
     <string name="history">Verlauf</string>
     <string name="downloads">Downloads</string>

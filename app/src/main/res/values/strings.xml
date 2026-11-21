@@ -9,6 +9,8 @@
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
     <string name="delete">Delete</string>
+    <string name="remove_favorite">Remove favorite?</string>
+    <string name="site_icon">Site icon</string>
     <string name="bookmarks">Bookmarks</string>
     <string name="history">History</string>
     <string name="downloads">Downloads</string>

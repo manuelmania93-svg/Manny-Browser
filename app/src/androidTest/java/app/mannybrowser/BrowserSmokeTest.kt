@@ -202,5 +202,37 @@ class BrowserSmokeTest {
             assertTrue("New tab start page absent", device.wait(Until.hasObject(By.desc(str(R.string.add_shortcut))),10000))
         } finally { shot("25-share-tabs-final") }
     }
+    @Test fun favoriteTileAppearsOnStartPageWithIcon() {
+        val prefs = context.getSharedPreferences("manny", 0)
+        prefs.edit().clear().commit()
+        prefs.edit().putString("bookmarks",
+            "[{\"title\":\"Example Domain\",\"url\":\"https://example.com\"}]").commit()
+        // Seed the site icon the browser would have cached after visiting the page.
+        val dir = File(context.filesDir, "favicons").apply { mkdirs() }
+        File(dir, "example.com.png").delete()
+        val bmp = android.graphics.Bitmap.createBitmap(96, 96, android.graphics.Bitmap.Config.ARGB_8888)
+        bmp.eraseColor(android.graphics.Color.rgb(46, 107, 240))
+        File(dir, "example.com.png").outputStream().use {
+            bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+        }
+        context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+        device.waitForIdle()
+        try {
+            assertTrue("Manny activity not foreground", device.wait(Until.hasObject(By.pkg("app.mannybrowser")), 15000))
+            assertTrue("Favorite tile missing from start page", visible("Example Domain"))
+            assertTrue("Favorite tile shows no site icon",
+                device.wait(Until.hasObject(By.desc(str(R.string.site_icon))), 10000))
+            shot("30-favorite-start-tile")
+            // Un-favoriting through the tile removes it again.
+            device.findObject(By.text("Example Domain")).longClick()
+            assertTrue("Remove-favorite dialog missing", visible(str(R.string.remove_favorite)))
+            click(str(R.string.delete))
+            assertTrue("Favorite tile still present after removal",
+                device.wait(Until.gone(By.text("Example Domain")), 5000))
+            assertTrue("Favorite still stored", app.mannybrowser.data.Stores(context).bookmarks().isEmpty())
+            shot("31-favorite-tile-removed")
+        } finally { shot("32-favorite-tile-final") }
+    }
 
 }
