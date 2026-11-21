@@ -73,11 +73,16 @@ class TabGroupsTest {
         recordState("after text=$text")
     }
     private fun closeFirstMember() {
-        val bounds = boundsFromSnapshot("content-desc", context.getString(R.string.close_tab))
-        if (bounds == null) shot("missing-close")
-        assertNotNull("Snapshot contains member close", bounds)
-        device.click(bounds!!.centerX(), bounds.centerY())
-        device.waitForIdle(); Thread.sleep(500)
+        val allTabs = context.getString(R.string.all_tabs)
+        repeat(3) {
+            val bounds = boundsFromSnapshot("content-desc", context.getString(R.string.close_tab))
+            if (bounds == null) shot("missing-close")
+            assertNotNull("Snapshot contains member close", bounds)
+            device.click(bounds!!.centerX(), bounds.centerY())
+            device.waitForIdle(); Thread.sleep(500)
+            if (device.wait(Until.gone(By.text(allTabs)), 3000)) return
+        }
+        fail("Member close did not collapse the group detail")
     }
     private fun tabs() {
         assertTrue("Tabs button in browser", device.wait(Until.hasObject(By.desc("Tabs")), 15000))
