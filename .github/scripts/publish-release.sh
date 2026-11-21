@@ -1,7 +1,7 @@
 #!/bin/bash
 # Publishes a GitHub release for a gated main-head APK. Safe by construction:
 # - release is created as a DRAFT, all assets uploaded, then published atomically,
-#   so /releases/latest never points at a release whose 8cloud-update.json is missing
+#   so /releases/latest never points at a release whose manny-update.json is missing
 #   (which would mask the previous valid update);
 # - existing published tag = clean skip; existing draft = abort (no deletion/overwrite
 #   ever; cleanup of a stale draft is a deliberate human decision);
@@ -31,7 +31,7 @@ VC=$("$AAPT" dump badging "$APK" | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p")
 VN=$("$AAPT" dump badging "$APK" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")
 test -n "$VC" && test -n "$VN"
 TAG="v$VN"
-ASSET="8CloudGallery-$VN.apk"
+ASSET="Manny-Browser-$VN.apk"
 echo "head=${GITHUB_SHA:-?} tag=$TAG versionCode=$VC"
 
 # Gate 1: signature must be the stable CI key.
@@ -65,7 +65,7 @@ fi
 # Gate 4: monotonic versionCode vs the previous release manifest.
 PREV=0
 PREV_URL=$(api latest-release.json gh api "repos/$GITHUB_REPOSITORY/releases/latest" \
-  --jq '.assets[] | select(.name == "8cloud-update.json") | .browser_download_url' 2>/dev/null || true)
+  --jq '.assets[] | select(.name == "manny-update.json") | .browser_download_url' 2>/dev/null || true)
 if [ -n "$PREV_URL" ]; then
   PREV=$(api prev-manifest.json curl -fsSL "$PREV_URL" | jq -r '.versionCode')
 fi
@@ -80,7 +80,7 @@ mutate gh release create "$TAG" --draft --repo "$GITHUB_REPOSITORY" --target "$G
 mutate gh release upload "$TAG" "$ASSET" --repo "$GITHUB_REPOSITORY"
 APK_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$ASSET"
 jq -n --argjson vc "$VC" --arg vn "$VN" --arg url "$APK_URL" --arg sha "$SHA" \
-  '{versionCode: $vc, versionName: $vn, apkUrl: $url, sha256: $sha}' > 8cloud-update.json
-mutate gh release upload "$TAG" 8cloud-update.json --repo "$GITHUB_REPOSITORY"
+  '{versionCode: $vc, versionName: $vn, apkUrl: $url, sha256: $sha}' > manny-update.json
+mutate gh release upload "$TAG" manny-update.json --repo "$GITHUB_REPOSITORY"
 mutate gh release edit "$TAG" --draft=false --repo "$GITHUB_REPOSITORY"
-echo "PUBLISHED $TAG (versionCode $VC) with $ASSET + 8cloud-update.json"
+echo "PUBLISHED $TAG (versionCode $VC) with $ASSET + manny-update.json"
