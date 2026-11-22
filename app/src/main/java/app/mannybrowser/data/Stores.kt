@@ -20,6 +20,28 @@ class Stores(context: Context) {
         prefs.edit().putString(key, a.toString()).apply()
     }
 
+    var adBlockEnabled: Boolean
+        get() = prefs.getBoolean("adblock", true)
+        set(v) { prefs.edit().putBoolean("adblock", v).apply() }
+
+    var popupBlockEnabled: Boolean
+        get() = prefs.getBoolean("popupblock", true)
+        set(v) { prefs.edit().putBoolean("popupblock", v).apply() }
+
+    /** Hosts where the ad/popup blocker is paused (user's per-site off switch). */
+    fun blockerPausedSites(): Set<String> {
+        val a = arr("blocker_paused")
+        return (0 until a.length()).map { a.optString(it) }.filter { it.isNotBlank() }.toSet()
+    }
+
+    fun setBlockerPaused(host: String, paused: Boolean) {
+        val sites = blockerPausedSites().toMutableSet()
+        if (paused) sites.add(host) else sites.remove(host)
+        val a = JSONArray()
+        sites.forEach { a.put(it) }
+        putArr("blocker_paused", a)
+    }
+
     var darkModeOverride: Boolean?
         get() = if (prefs.contains("dark")) prefs.getBoolean("dark", false) else null
         set(v) {

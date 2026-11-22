@@ -16,6 +16,11 @@
     <string name="downloads">Downloads</string>
     <string name="new_tab">Neuer Tab</string>
     <string name="close_all">Alles löschen</string>
+    <string name="ad_blocker_on">Werbeblocker: an</string>
+    <string name="ad_blocker_off">Werbeblocker: aus</string>
+    <string name="ad_blocker_pause_site">Blocker auf dieser Seite pausieren</string>
+    <string name="ad_blocker_resume_site">Blocker auf dieser Seite fortsetzen</string>
+    <string name="popup_blocked">Popup blockiert</string>
     <string name="dark_mode">Dunkelmodus</string>
     <string name="find_in_page">Auf Seite suchen</string>
     <string name="share">Teilen</string>

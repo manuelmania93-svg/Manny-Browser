@@ -23,13 +23,14 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, true)
         state = BrowserState(this)
         state.newTab()
+        state.initAdBlock()
         handleIntent(intent)
         setContent {
             MannyTheme(darkOverride = state.darkModeOverride) {
                 BrowserScreen(state)
             }
             // In-app update: one silent check per process start; offline or no manifest shows nothing.
-            androidx.compose.runtime.LaunchedEffect(Unit) { state.checkForUpdateOnce() }
+            androidx.compose.runtime.LaunchedEffect(Unit) { state.checkForUpdateOnce(); state.initAdBlock() }
             val updateLifecycleOwner = LocalLifecycleOwner.current
             DisposableEffect(updateLifecycleOwner) {
                 val observer = LifecycleEventObserver { _, event ->
