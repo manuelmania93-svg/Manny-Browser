@@ -101,7 +101,7 @@ class BrowserSmokeTest {
             assertTrue("Back did not return", visible("Manny fixture"))
             clickDesc("Forward")
             assertTrue("Forward did not return", visible("Second fixture"))
-            if (!visible("Download fixture", 20000)) {
+            if (!visible("Download fixture")) {
                 // Slow emulator: the WebView occasionally stalls after back/forward.
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("http://localhost:8765/second"), context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 assertTrue("Second page after reload", visible("Second fixture"))
