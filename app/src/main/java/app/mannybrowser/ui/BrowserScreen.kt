@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Surface
@@ -116,10 +115,8 @@ fun BrowserScreen(state: BrowserState) {
                             }
                         }
                     }
-                    IconButton(onClick = {
-                        tab?.url?.let { tab.webView.reload() } ?: state.navigate(urlText)
-                    }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = null)
+                    IconButton(onClick = { state.overlay = Overlay.NONE; state.menuOpen = true }) {
+                        Icon(Icons.Filled.Menu, contentDescription = "Menu")
                     }
                 }
             }
@@ -193,9 +190,6 @@ fun BrowserScreen(state: BrowserState) {
                         Icon(Icons.Filled.Star, contentDescription = stringResource(R.string.bookmarks))
                     }
                     Box(Modifier.weight(1f)) {}
-                    IconButton(onClick = { state.overlay = Overlay.NONE; state.menuOpen = true }) {
-                        Icon(Icons.Filled.Menu, contentDescription = "Menu")
-                    }
                 }
             }
         }

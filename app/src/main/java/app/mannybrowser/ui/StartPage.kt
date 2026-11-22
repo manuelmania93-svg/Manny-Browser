@@ -15,7 +15,10 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,20 +42,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.mannybrowser.BrowserState
 import app.mannybrowser.R
 import app.mannybrowser.data.Shortcut
-import kotlin.math.abs
+import androidx.compose.foundation.layout.fillMaxWidth
 
-private val TileColors = listOf(
-    Color(0xFF2E6BF0), Color(0xFF8E44AD), Color(0xFF16A085),
-    Color(0xFFD35400), Color(0xFFC0392B), Color(0xFF2C3E50)
-)
-
-private fun tileColor(name: String): Color =
-    TileColors[(name.hashCode() and Int.MAX_VALUE) % TileColors.size]
+/** Neutral dark circle behind every tile, like Chrome's home: the icon carries the color. */
+private val TileBackground = Color(0xFF303134)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -62,9 +61,26 @@ fun StartPage(state: BrowserState) {
     var removingFavorite by remember { mutableStateOf<StartTile?>(null) }
     val tick = state.faviconTick
 
+    Column(Modifier.fillMaxSize()) {
+        var homeSearch by remember { mutableStateOf("") }
+        TextField(
+            value = homeSearch,
+            onValueChange = { homeSearch = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            placeholder = { Text(stringResource(R.string.search_hint)) },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            singleLine = true,
+            shape = RoundedCornerShape(28.dp),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = {
+                if (homeSearch.isNotBlank()) state.navigate(homeSearch)
+            })
+        )
     LazyVerticalGrid(
-        columns = GridCells.Fixed(5),
-        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 32.dp),
+        columns = GridCells.Fixed(4),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -81,15 +97,15 @@ fun StartPage(state: BrowserState) {
                 )
             ) {
                 Box(
-                    Modifier.size(56.dp).background(tileColor(t.name), RoundedCornerShape(50)),
+                    Modifier.size(56.dp).background(TileBackground, RoundedCornerShape(50)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (icon != null) {
                         Image(
                             icon.asImageBitmap(),
                             contentDescription = stringResource(R.string.site_icon),
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(50))
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp))
                         )
                     } else {
                         Text(
@@ -115,23 +131,18 @@ fun StartPage(state: BrowserState) {
                 modifier = Modifier.clickable { showAdd = true }
             ) {
                 Box(
-                    Modifier.size(56.dp).background(
-                        MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(50)
-                    ),
+                    Modifier.size(56.dp).background(TileBackground, RoundedCornerShape(50)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_shortcut))
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = stringResource(R.string.add_shortcut),
+                        tint = Color.White
+                    )
                 }
-                Text(
-                    stringResource(R.string.add_shortcut),
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
             }
         }
+    }
     }
 
     if (showAdd) {
