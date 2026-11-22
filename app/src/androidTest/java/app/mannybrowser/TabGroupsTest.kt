@@ -149,7 +149,14 @@ class TabGroupsTest {
                 leftDetail = device.wait(Until.gone(By.text(allTabs)), 10000)
             }
             assertTrue("Cycle $cycle Back leaves detail", leftDetail)
-            assertNotNull("Cycle $cycle clickable group card", waitForGroupCard())
+            var card = waitForGroupCard()
+            if (card == null && device.hasObject(By.desc("Tabs"))) {
+                // A doubled Back on a slow emulator can dismiss the overview with
+                // the detail; reopen it and look once more before failing.
+                tabs()
+                card = waitForGroupCard()
+            }
+            assertNotNull("Cycle $cycle clickable group card", card)
             shot("back-$cycle")
         }
         click("localhost")

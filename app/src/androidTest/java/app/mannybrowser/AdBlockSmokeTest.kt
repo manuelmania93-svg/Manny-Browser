@@ -55,7 +55,7 @@ class AdBlockSmokeTest {
     /** Seed tiny deterministic filter lists so no network download is needed. */
     private fun seedFilters() {
         val dir = File(context.filesDir, "filters").apply { mkdirs() }
-        File(dir, "easylist.txt").writeText("||pagead2.googlesyndication.com^\n##.ad-banner\n")
+        File(dir, "easylist.txt").writeText("||10.0.2.2^\n##.ad-banner\n")
         File(dir, "easyprivacy.txt").writeText("! fixture\n")
         File(dir, "updated-at").writeText(System.currentTimeMillis().toString())
     }
