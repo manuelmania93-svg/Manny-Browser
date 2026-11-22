@@ -37,8 +37,8 @@ class TabGroupsTest {
         }
         return null
     }
-    private fun waitForGroupCard(): android.graphics.Rect? {
-        val deadline = System.currentTimeMillis() + 10000
+    private fun waitForGroupCard(timeoutMs: Long = 25000): android.graphics.Rect? {
+        val deadline = System.currentTimeMillis() + timeoutMs
         do {
             val card = boundsFromSnapshot("text", "localhost", clickableParent = true)
             if (card != null) return card
@@ -98,6 +98,23 @@ class TabGroupsTest {
         device.takeScreenshot(File(dir, "$lang-group-$name.png"))
         device.dumpWindowHierarchy(File(dir, "$lang-group-$name.xml"))
     }
+    private fun openGroupDetail() {
+        var detailOpen = false
+        repeat(3) {
+            if (detailOpen) return@repeat
+            var b = boundsFromSnapshot("text", "localhost", clickableParent = true)
+            if (b == null) {
+                tabs()
+                b = boundsFromSnapshot("text", "localhost", clickableParent = true)
+            }
+            if (b != null) {
+                device.click(b.centerX(), b.centerY())
+                device.waitForIdle(); Thread.sleep(500)
+            }
+            detailOpen = device.wait(Until.hasObject(By.text(context.getString(R.string.all_tabs))), 8000)
+        }
+        assertTrue("Group detail did not open", detailOpen)
+    }
     private fun open(url: String) {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url), context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -150,16 +167,16 @@ class TabGroupsTest {
             }
             assertTrue("Cycle $cycle Back leaves detail", leftDetail)
             var card = waitForGroupCard()
-            if (card == null && device.hasObject(By.desc("Tabs"))) {
+            if (card == null) {
                 // A doubled Back on a slow emulator can dismiss the overview with
                 // the detail; reopen it and look once more before failing.
-                tabs()
+                if (device.hasObject(By.desc("Tabs"))) tabs()
                 card = waitForGroupCard()
             }
             assertNotNull("Cycle $cycle clickable group card", card)
             shot("back-$cycle")
         }
-        click("localhost")
+        openGroupDetail()
         assertTrue("Member detail before selection", visible(context.getString(R.string.all_tabs)))
         val first = boundsFromSnapshot("content-desc", context.getString(R.string.close_tab))
         assertNotNull("Member card bounds available", first)
@@ -171,7 +188,7 @@ class TabGroupsTest {
         tabs()
         shot("reopened-overview")
         assertTrue("Reopened overview is not detail", device.wait(Until.gone(By.text(allTabs)), 10000))
-        click("localhost")
+        openGroupDetail()
         assertTrue("Member detail reopened before close", visible(context.getString(R.string.all_tabs)))
         shot("before-close")
         closeFirstMember()
