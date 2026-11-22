@@ -43,7 +43,7 @@ class FilterLists(private val context: Context) {
     fun refreshNow(): Boolean {
         var allOk = true
         for (src in SOURCES) {
-            val ok = runCatching { download(src.url, File(dir, "${src.name}.txt")) }.getOrDefault(false)
+            val ok = runCatching { download(src.url, File(dir, "${src.name}.txt")); true }.getOrDefault(false)
             if (!ok) allOk = false
         }
         if (allOk) stampFile.writeText(System.currentTimeMillis().toString())
