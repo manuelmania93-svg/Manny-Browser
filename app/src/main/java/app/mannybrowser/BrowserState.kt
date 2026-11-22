@@ -42,6 +42,13 @@ class Tab(val id: Long, val webView: WebView) {
     var favicon by mutableStateOf<Bitmap?>(null)
 }
 
+/** Manually created, named and colored tab group. Lives as long as its tabs (in-memory, like tabs). */
+class TabGroup(val id: Long, name: String, colorIndex: Int, members: List<Long>) {
+    var name by mutableStateOf(name)
+    var colorIndex by mutableIntStateOf(colorIndex)
+    val tabIds = mutableStateListOf<Long>().apply { addAll(members) }
+}
+
 @SuppressLint("SetJavaScriptEnabled")
 class BrowserState(private val context: Context) {
     val stores = Stores(context)
@@ -59,6 +66,43 @@ class BrowserState(private val context: Context) {
     var bookmarks by mutableStateOf(stores.bookmarks())
     var history by mutableStateOf(stores.history())
     private var nextId = 1L
+    val tabGroups = mutableStateListOf<TabGroup>()
+    private var nextGroupId = 1L
+
+    fun groupOf(tabId: Long): TabGroup? = tabGroups.firstOrNull { tabId in it.tabIds }
+
+    fun createGroup(name: String, colorIndex: Int, members: List<Long>): TabGroup? {
+        val ids = members.distinct().filter { id -> tabs.any { it.id == id } }
+        if (ids.isEmpty()) return null
+        tabGroups.forEach { g -> g.tabIds.removeAll(ids.toSet()) }
+        tabGroups.removeAll { it.tabIds.isEmpty() }
+        val group = TabGroup(nextGroupId++, name.trim().ifBlank { "Group" }, colorIndex, ids)
+        tabGroups.add(group)
+        return group
+    }
+
+    fun renameGroup(groupId: Long, name: String) {
+        tabGroups.firstOrNull { it.id == groupId }?.let { it.name = name.trim().ifBlank { it.name } }
+    }
+
+    fun recolorGroup(groupId: Long, colorIndex: Int) {
+        tabGroups.firstOrNull { it.id == groupId }?.colorIndex = colorIndex
+    }
+
+    /** Closes every tab in the group and removes it (Chrome's "Close group"). */
+    fun closeGroup(groupId: Long) {
+        val group = tabGroups.firstOrNull { it.id == groupId } ?: return
+        group.tabIds.toList().forEach { id ->
+            val index = tabs.indexOfFirst { it.id == id }
+            if (index >= 0) closeTab(index)
+        }
+        tabGroups.removeAll { it.id == groupId || it.tabIds.isEmpty() }
+    }
+
+    /** Removes the group but keeps its tabs as ungrouped tabs (Chrome's "Delete group"). */
+    fun deleteGroup(groupId: Long) {
+        tabGroups.removeAll { it.id == groupId }
+    }
 
     // --- In-app update flow (same semantics as File Explorer CL: user-tap only, never silent) ---
     private val updateScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -228,6 +272,8 @@ class BrowserState(private val context: Context) {
         t.preview = null
         t.webView.destroy()
         tabs.removeAt(index)
+        tabGroups.forEach { g -> g.tabIds.remove(t.id) }
+        tabGroups.removeAll { it.tabIds.isEmpty() }
         if (tabs.isEmpty()) { newTab() }
         else if (index < currentTabIndex) currentTabIndex--
         else if (currentTabIndex >= tabs.size) currentTabIndex = tabs.size - 1
@@ -236,6 +282,7 @@ class BrowserState(private val context: Context) {
     fun closeAllTabs() {
         tabs.forEach { it.preview = null; it.webView.destroy() }
         tabs.clear()
+        tabGroups.clear()
         newTab()
     }
 
