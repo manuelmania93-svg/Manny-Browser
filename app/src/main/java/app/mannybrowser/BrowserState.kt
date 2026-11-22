@@ -241,9 +241,12 @@ class BrowserState(private val context: Context) {
         wv.settings.allowContentAccess = false
         applyDark(wv)
         wv.webViewClient = object : WebViewClient() {
+            @Volatile private var pageUrlCache: String? = null
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
-                if (adBlockEnabled && !isBlockerPaused(view.url) &&
-                    adBlocker.shouldBlock(view.url, request.url.toString())
+                // Runs on a WebView IO thread: never touch view.url here, use the cached page URL.
+                val pageUrl = if (request.isForMainFrame) request.url.toString() else pageUrlCache
+                if (adBlockEnabled && !isBlockerPaused(pageUrl) &&
+                    adBlocker.shouldBlock(pageUrl, request.url.toString())
                 ) {
                     blockedInSession = adBlocker.blockedCount
                     return EMPTY_RESPONSE
@@ -252,6 +255,7 @@ class BrowserState(private val context: Context) {
             }
             override fun doUpdateVisitedHistory(view: WebView, visitedUrl: String?, isReload: Boolean) {
                 visitedUrl ?: return
+                pageUrlCache = visitedUrl
                 if (visitedUrl == "about:blank") return
                 tab.url = visitedUrl
                 view.title?.let { if (it.isNotBlank()) tab.title = it }
