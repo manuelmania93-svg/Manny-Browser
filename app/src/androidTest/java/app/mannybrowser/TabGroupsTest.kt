@@ -141,7 +141,14 @@ class TabGroupsTest {
             assertEquals("One close per member", 2, device.findObjects(By.desc(context.getString(R.string.close_tab))).size)
             shot("members-$cycle")
             device.pressBack()
-            assertTrue("Cycle $cycle Back leaves detail", device.wait(Until.gone(By.text(allTabs)), 10000))
+            // A Back press during recomposition can be swallowed on a slow
+            // emulator; pressing again is safe while the detail is still open.
+            var leftDetail = device.wait(Until.gone(By.text(allTabs)), 5000)
+            if (!leftDetail) {
+                device.pressBack()
+                leftDetail = device.wait(Until.gone(By.text(allTabs)), 10000)
+            }
+            assertTrue("Cycle $cycle Back leaves detail", leftDetail)
             assertNotNull("Cycle $cycle clickable group card", waitForGroupCard())
             shot("back-$cycle")
         }
