@@ -153,7 +153,7 @@ class TabGroupsTest {
         // acknowledgement that Back completed. Wait for the detail-only control
         // to disappear, then require a clickable overview card before proceeding.
         repeat(5) { cycle ->
-            click("localhost")
+            openGroupDetail()
             assertTrue("Cycle $cycle opens members", visible(allTabs))
             assertEquals("One close per member", 2, device.findObjects(By.desc(context.getString(R.string.close_tab))).size)
             shot("members-$cycle")
