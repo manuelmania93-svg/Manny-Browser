@@ -21,7 +21,7 @@ android {
         versionCode = maxOf(stampedVersionCode, 2)
         // Semantic version. Every merge intended to produce a release bumps this; the
         // publish job skips cleanly when the tag exists.
-        versionName = "0.2.0"
+        versionName = "0.2.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
