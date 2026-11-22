@@ -64,12 +64,24 @@ class AdBlockSmokeTest {
         context.getSharedPreferences("manny", 0).edit().clear().commit()
         seedFilters()
         var up = false
-        repeat(3) {
+        repeat(4) {
             if (up) return@repeat
             context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
             device.waitForIdle()
+            // Emulator flake: Pixel Launcher ANRs on the first launch after install
+            // and swallows the intent; dismiss the dialog and retry (BrowserSmokeTest
+            // handles the same case).
+            if (device.hasObject(By.text("Pixel Launcher isn't responding"))) {
+                device.findObject(By.text("Close app"))?.click()
+                device.waitForIdle()
+                return@repeat
+            }
             up = device.wait(Until.hasObject(By.pkg("app.mannybrowser")), 15000)
+            if (!up) {
+                device.pressHome()
+                device.waitForIdle()
+            }
         }
         assertTrue("Manny activity not foreground", up)
         Thread.sleep(3000) // filter engine load + page settle

@@ -418,7 +418,7 @@ class BrowserState(private val context: Context) {
 
     companion object {
         private val EMPTY_RESPONSE = WebResourceResponse(
-            "text/plain", "utf-8", 204, "No Content", emptyMap(),
+            "text/plain", "utf-8", 403, "Forbidden", emptyMap(),
             java.io.ByteArrayInputStream(ByteArray(0))
         )
 
