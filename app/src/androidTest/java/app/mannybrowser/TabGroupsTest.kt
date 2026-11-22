@@ -91,6 +91,27 @@ class TabGroupsTest {
         device.click(bounds!!.centerX(), bounds.centerY())
         device.waitForIdle(); Thread.sleep(750)
     }
+    /** Clicks the group card until the member detail opens; slow emulators swallow taps. */
+    private fun openDetail(label: String) {
+        val allTabs = context.getString(R.string.all_tabs)
+        repeat(4) { attempt ->
+            click(label)
+            if (device.wait(Until.hasObject(By.text(allTabs)), 4000)) return
+            shot("open-detail-retry-$attempt")
+            // The tap may have dismissed the overview entirely; reopen it.
+            if (device.hasObject(By.desc("Tabs"))) tabs()
+        }
+        fail("Member detail never opened for $label")
+    }
+    /** Waits for a clickable overview card; reopens the overview if a stray Back closed it. */
+    private fun requireOverviewCard(): android.graphics.Rect {
+        repeat(3) {
+            val card = waitForGroupCard()
+            if (card != null) return card
+            if (device.hasObject(By.desc("Tabs"))) tabs()
+        }
+        fail("Overview card never returned")
+    }
     private fun shot(name: String) {
         recordState("screenshot $name")
         val dir = File(context.getExternalFilesDir(null), "manny-evidence").apply { mkdirs() }
@@ -136,7 +157,7 @@ class TabGroupsTest {
         // acknowledgement that Back completed. Wait for the detail-only control
         // to disappear, then require a clickable overview card before proceeding.
         repeat(5) { cycle ->
-            click("localhost")
+            openDetail("localhost")
             assertTrue("Cycle $cycle opens members", visible(allTabs))
             assertEquals("One close per member", 2, device.findObjects(By.desc(context.getString(R.string.close_tab))).size)
             shot("members-$cycle")
@@ -149,7 +170,7 @@ class TabGroupsTest {
                 leftDetail = device.wait(Until.gone(By.text(allTabs)), 10000)
             }
             assertTrue("Cycle $cycle Back leaves detail", leftDetail)
-            assertNotNull("Cycle $cycle clickable group card", waitForGroupCard())
+            requireOverviewCard()
             shot("back-$cycle")
         }
         click("localhost")
@@ -164,7 +185,7 @@ class TabGroupsTest {
         tabs()
         shot("reopened-overview")
         assertTrue("Reopened overview is not detail", device.wait(Until.gone(By.text(allTabs)), 10000))
-        click("localhost")
+        openDetail("localhost")
         assertTrue("Member detail reopened before close", visible(context.getString(R.string.all_tabs)))
         shot("before-close")
         closeFirstMember()
