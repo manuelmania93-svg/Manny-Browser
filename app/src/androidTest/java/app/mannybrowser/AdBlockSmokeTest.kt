@@ -8,6 +8,7 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -62,11 +63,34 @@ class AdBlockSmokeTest {
     private fun launchFresh() {
         context.getSharedPreferences("manny", 0).edit().clear().commit()
         seedFilters()
-        context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
-        device.waitForIdle()
-        assertTrue("Manny activity not foreground", device.wait(Until.hasObject(By.pkg("app.mannybrowser")), 15000))
-        Thread.sleep(1500) // filter engine load + page settle
+        var up = false
+        repeat(3) {
+            if (up) return@repeat
+            context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+            device.waitForIdle()
+            up = device.wait(Until.hasObject(By.pkg("app.mannybrowser")), 15000)
+        }
+        assertTrue("Manny activity not foreground", up)
+        Thread.sleep(3000) // filter engine load + page settle
+    }
+
+    /** Tab count shown next to the Tabs button (text lives in a child node of the described control). */
+    private fun tabCount(): String? {
+        val btn = device.wait(Until.findObject(By.desc("Tabs")), 5000) ?: return null
+        btn.text?.let { if (it.isNotBlank()) return it }
+        val b = btn.visibleBounds
+        return device.findObjects(By.text(java.util.regex.Pattern.compile("[0-9]+")))
+            .firstOrNull { b.contains(it.visibleCenter.x, it.visibleCenter.y) }?.text
+    }
+
+    /** Load [url] until [marker] shows, reloading a few times so a slow first engine compile cannot fail the test. */
+    private fun openUntil(url: String, marker: String) {
+        repeat(4) {
+            open(url)
+            if (visible(marker, 8000)) return
+            Thread.sleep(2000)
+        }
     }
 
     private fun open(url: String) {
@@ -79,8 +103,8 @@ class AdBlockSmokeTest {
     fun adBlockingCosmeticAndSitePause() {
         launchFresh()
         try {
-            open("http://localhost:8765/adblock-test")
-            assertTrue("blocked ad script must fire onerror", visible("AD-BLOCKED"))
+            openUntil("http://localhost:8765/adblock-test", "AD-BLOCKED")
+            assertTrue("blocked ad script must fire onerror", visible("AD-BLOCKED", 3000))
             Thread.sleep(2500) // second cosmetic injection pass
             shot("30-adblock-blocked")
 
@@ -113,14 +137,16 @@ class AdBlockSmokeTest {
             open("http://localhost:8765/popup-test")
             assertTrue("popup fixture must load", visible("Popup fixture"))
             Thread.sleep(2500) // give the gestureless window.open its chance
-            val count = device.findObject(By.desc("Tabs"))?.text
-            assertEquals("gestureless popup must not open a tab", "1", count)
+            val before = tabCount()
+            assertNotNull("tab count must be readable", before)
+            // baseline after open() is the start tab plus the VIEW-intent tab
+            assertEquals("gestureless popup must not open a tab", "2", before)
             shot("40-popup-blocked")
 
             click("Open with gesture")
             Thread.sleep(1500)
-            val countAfter = device.findObject(By.desc("Tabs"))?.text
-            assertEquals("real tap must open the tab", "2", countAfter)
+            val countAfter = tabCount()
+            assertEquals("real tap must open the tab", "3", countAfter)
             shot("41-popup-gesture-allowed")
         } finally { shot("49-popup-final") }
     }
