@@ -61,6 +61,15 @@ class TabScreenTest {
         assertTrue("Missing $desc", device.wait(Until.hasObject(By.desc(desc)), 15000))
         clickAttr("content-desc", desc, clickableParent = true)
     }
+    private fun fillDialogField(value: String) {
+        if (device.wait(Until.findObject(By.focused(true)), 2500) == null) {
+            clickAttr("class", "android.widget.EditText", clickableParent = false)
+        }
+        val edit = device.wait(Until.findObject(By.focused(true)), 5000)
+        assertNotNull("Dialog field focused", edit)
+        edit!!.text = value
+        device.waitForIdle()
+    }
     private fun tabs() {
         assertTrue("Tabs button in browser", device.wait(Until.hasObject(By.desc("Tabs")), 15000))
         clickAttr("content-desc", "Tabs", clickableParent = true)
@@ -130,15 +139,7 @@ class TabScreenTest {
         shot("selected")
         clickText(str(R.string.new_group_action, 2))
         assertTrue("Name dialog", visible(str(R.string.edit_group_name)))
-        val nameField = device.wait(Until.findObject(By.focused(true)), 5000)
-        // The dialog field is not pre-focused on every build; click it if needed.
-        if (nameField == null) {
-            clickAttr("text", str(R.string.group_name_hint), clickableParent = false)
-        }
-        val edit = device.wait(Until.findObject(By.focused(true)), 5000)
-        assertNotNull("Group name field focused", edit)
-        edit!!.text = "MyGroup"
-        device.waitForIdle()
+        fillDialogField("MyGroup")
         clickText(str(R.string.save))
         shot("group-created")
         assertTrue("Group card with name", visible("MyGroup"))
@@ -147,10 +148,7 @@ class TabScreenTest {
         // Rename it.
         clickDesc(str(R.string.group_options))
         clickText(str(R.string.edit_group_name))
-        val renameEdit = device.wait(Until.findObject(By.focused(true)), 5000)
-        assertNotNull("Rename field focused", renameEdit)
-        renameEdit!!.text = "Renamed"
-        device.waitForIdle()
+        fillDialogField("Renamed")
         clickText(str(R.string.save))
         shot("group-renamed")
         assertTrue("Renamed group card", visible("Renamed"))
@@ -182,13 +180,7 @@ class TabScreenTest {
         clickText(str(R.string.select_tabs))
         clickDesc(str(R.string.select_tab, "localhost"))
         clickText(str(R.string.new_group_action, 2))
-        if (device.wait(Until.findObject(By.focused(true)), 3000) == null) {
-            clickAttr("text", str(R.string.group_name_hint), clickableParent = false)
-        }
-        val edit = device.wait(Until.findObject(By.focused(true)), 5000)
-        assertNotNull("Group name field focused", edit)
-        edit!!.text = "KeepTabs"
-        device.waitForIdle()
+        fillDialogField("KeepTabs")
         clickText(str(R.string.save))
         assertTrue("Group card with name", visible("KeepTabs"))
         clickDesc(str(R.string.group_options))
