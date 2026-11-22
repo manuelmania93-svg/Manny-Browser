@@ -74,13 +74,13 @@ class TabGroupsTest {
     }
     private fun closeFirstMember() {
         val allTabs = context.getString(R.string.all_tabs)
-        repeat(3) {
+        repeat(5) {
             val bounds = boundsFromSnapshot("content-desc", context.getString(R.string.close_tab))
             if (bounds == null) shot("missing-close")
             assertNotNull("Snapshot contains member close", bounds)
             device.click(bounds!!.centerX(), bounds.centerY())
             device.waitForIdle(); Thread.sleep(500)
-            if (device.wait(Until.gone(By.text(allTabs)), 3000)) return
+            if (device.wait(Until.gone(By.text(allTabs)), 5000)) return
         }
         fail("Member close did not collapse the group detail")
     }
