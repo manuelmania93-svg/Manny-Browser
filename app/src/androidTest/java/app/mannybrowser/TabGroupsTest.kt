@@ -104,8 +104,10 @@ class TabGroupsTest {
             if (detailOpen) return@repeat
             var b = boundsFromSnapshot("text", "localhost", clickableParent = true)
             if (b == null) {
-                tabs()
-                b = boundsFromSnapshot("text", "localhost", clickableParent = true)
+                // Either the overview was dismissed (doubled Back) or the card has
+                // not composed yet; (re)open the overview and poll for the card.
+                if (device.hasObject(By.desc("Tabs"))) tabs()
+                b = waitForGroupCard()
             }
             if (b != null) {
                 device.click(b.centerX(), b.centerY())
