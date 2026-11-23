@@ -110,7 +110,7 @@ class TabGroupsTest {
             if (card != null) return card
             if (device.hasObject(By.desc("Tabs"))) tabs()
         }
-        return fail("Overview card never returned")
+        throw AssertionError("Overview card never returned")
     }
     private fun shot(name: String) {
         recordState("screenshot $name")
