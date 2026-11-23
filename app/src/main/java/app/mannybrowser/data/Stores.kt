@@ -134,4 +134,38 @@ class Stores(context: Context) {
     }
 
     fun clearHistory() = putArr("history", JSONArray())
+
+    /** Persists the tab session (tabs, manual groups, active tab) as one JSON object. */
+    fun saveSession(s: Session) {
+        val tabs = JSONArray()
+        s.tabs.forEach { t ->
+            tabs.put(JSONObject().put("url", t.url ?: JSONObject.NULL).put("title", t.title))
+        }
+        val groups = JSONArray()
+        s.groups.forEach { g ->
+            val members = JSONArray()
+            g.members.forEach { members.put(it) }
+            groups.put(JSONObject().put("name", g.name).put("color", g.colorIndex).put("members", members))
+        }
+        val root = JSONObject().put("v", 1).put("current", s.current).put("tabs", tabs).put("groups", groups)
+        prefs.edit().putString("session", root.toString()).apply()
+    }
+
+    /** The last saved session, or null when none exists or the payload is unreadable. */
+    fun loadSession(): Session? = try {
+        val raw = prefs.getString("session", null) ?: return null
+        val root = JSONObject(raw)
+        val tabsArr = root.optJSONArray("tabs") ?: return null
+        val tabs = (0 until tabsArr.length()).map {
+            val o = tabsArr.getJSONObject(it)
+            SessionTab(if (o.isNull("url")) null else o.optString("url").ifBlank { null }, o.optString("title"))
+        }
+        val groupsArr = root.optJSONArray("groups") ?: JSONArray()
+        val groups = (0 until groupsArr.length()).map {
+            val o = groupsArr.getJSONObject(it)
+            val m = o.optJSONArray("members") ?: JSONArray()
+            SessionGroup(o.optString("name"), o.optInt("color"), (0 until m.length()).map { i -> m.optInt(i) })
+        }
+        Session(tabs, groups, root.optInt("current", 0)).normalized()
+    } catch (e: Exception) { null }
 }
