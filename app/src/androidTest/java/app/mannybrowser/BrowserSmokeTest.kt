@@ -146,7 +146,21 @@ class BrowserSmokeTest {
             device.pressBack()
             clickDesc("Menu")
             click(str(R.string.find_in_page))
-            val fields = device.findObjects(By.clazz("android.widget.EditText"))
+            // The find bar animates in after the menu click returns; poll, and if the
+            // bar never appeared reopen the menu and tap the item once more.
+            var fields = device.findObjects(By.clazz("android.widget.EditText"))
+            repeat(2) {
+                val deadline = System.currentTimeMillis() + 5000
+                while (fields.isEmpty() && System.currentTimeMillis() < deadline) {
+                    Thread.sleep(50)
+                    fields = device.findObjects(By.clazz("android.widget.EditText"))
+                }
+                if (fields.isNotEmpty()) return@repeat
+                device.pressBack()
+                clickDesc("Menu")
+                click(str(R.string.find_in_page))
+            }
+            assertTrue("Find-in-page field missing", fields.isNotEmpty())
             fields.last().text = "domain"
             shot("08-find")
             device.pressBack()
