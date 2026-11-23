@@ -15,6 +15,8 @@ import android.widget.Toast
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -26,6 +28,8 @@ import app.mannybrowser.data.Bookmark
 import app.mannybrowser.data.HistoryEntry
 import app.mannybrowser.data.Shortcut
 import app.mannybrowser.data.Stores
+import app.mannybrowser.adblock.AdBlocker
+import app.mannybrowser.adblock.FilterLists
 import app.mannybrowser.update.AppUpdate
 import app.mannybrowser.update.UpdateState
 import kotlinx.coroutines.CoroutineScope
@@ -62,6 +66,49 @@ class BrowserState(private val context: Context) {
     var fullscreen by mutableStateOf(false)
     var findBarOpen by mutableStateOf(false)
     var menuOpen by mutableStateOf(false)
+    // --- Ad & popup blocker ---
+    val adBlocker = AdBlocker()
+    private val filterLists = FilterLists(context)
+    var adBlockEnabled by mutableStateOf(stores.adBlockEnabled)
+    var popupBlockEnabled by mutableStateOf(stores.popupBlockEnabled)
+    var blockerPausedSites by mutableStateOf(stores.blockerPausedSites())
+    var blockedInSession by mutableIntStateOf(0)
+    var adBlockReady by mutableStateOf(false)
+    private var lastPopupToast = 0L
+
+    fun isBlockerPaused(url: String?): Boolean {
+        val host = AdBlocker.hostOf(url) ?: return false
+        return AdBlocker.matches(blockerPausedSites, host)
+    }
+
+    fun toggleAdBlock() {
+        adBlockEnabled = !adBlockEnabled
+        stores.adBlockEnabled = adBlockEnabled
+        currentTab?.let { if (it.url != null) it.webView.reload() }
+    }
+
+    fun toggleSitePause() {
+        val t = currentTab ?: return
+        val host = AdBlocker.hostOf(t.url) ?: return
+        val paused = AdBlocker.matches(blockerPausedSites, host)
+        stores.setBlockerPaused(host, !paused)
+        blockerPausedSites = stores.blockerPausedSites()
+        t.webView.reload()
+    }
+
+    private fun onPopupBlocked() {
+        val now = System.currentTimeMillis()
+        if (now - lastPopupToast < 2500) return
+        lastPopupToast = now
+        Toast.makeText(context, context.getString(R.string.popup_blocked), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun injectCosmeticFilters(view: WebView) {
+        if (!adBlockEnabled || isBlockerPaused(view.url)) return
+        val js = adBlocker.cosmeticJs() ?: return
+        view.evaluateJavascript(js, null)
+    }
+
     var shortcuts by mutableStateOf(stores.shortcuts())
     var bookmarks by mutableStateOf(stores.bookmarks())
     var history by mutableStateOf(stores.history())
@@ -130,6 +177,16 @@ class BrowserState(private val context: Context) {
         if (!updateCheckedThisProcess) {
             updateCheckedThisProcess = true
             checkForUpdate(silent = true)
+        }
+    }
+
+    /** Load cached filter lists and refresh them in the background when stale. */
+    private var adBlockInitStarted = false
+    fun initAdBlock() {
+        if (adBlockInitStarted) return
+        adBlockInitStarted = true
+        filterLists.loadAndRefresh(updateScope, adBlocker) {
+            adBlockReady = adBlocker.isReady()
         }
     }
 
@@ -228,8 +285,21 @@ class BrowserState(private val context: Context) {
         wv.settings.allowContentAccess = false
         applyDark(wv)
         wv.webViewClient = object : WebViewClient() {
+            @Volatile private var pageUrlCache: String? = null
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+                // Runs on a WebView IO thread: never touch view.url here, use the cached page URL.
+                val pageUrl = if (request.isForMainFrame) request.url.toString() else pageUrlCache
+                if (adBlockEnabled && !isBlockerPaused(pageUrl) &&
+                    adBlocker.shouldBlock(pageUrl, request.url.toString())
+                ) {
+                    blockedInSession = adBlocker.blockedCount
+                    return EMPTY_RESPONSE
+                }
+                return super.shouldInterceptRequest(view, request)
+            }
             override fun doUpdateVisitedHistory(view: WebView, visitedUrl: String?, isReload: Boolean) {
                 visitedUrl ?: return
+                pageUrlCache = visitedUrl
                 if (visitedUrl == "about:blank") return
                 tab.url = visitedUrl
                 view.title?.let { if (it.isNotBlank()) tab.title = it }
@@ -238,9 +308,32 @@ class BrowserState(private val context: Context) {
             }
             override fun onPageFinished(view: WebView, finishedUrl: String?) {
                 view.title?.let { if (it.isNotBlank()) tab.title = it }
+                injectCosmeticFilters(view)
+                // Catch late-injected ad containers once; cheap because the JS no-ops when already applied.
+                view.postDelayed({ injectCosmeticFilters(view) }, 2000)
             }
         }
+        wv.settings.setSupportMultipleWindows(true)
         wv.webChromeClient = object : WebChromeClient() {
+            override fun onCreateWindow(
+                view: WebView, isDialog: Boolean, isUserGesture: Boolean, resultMsg: android.os.Message
+            ): Boolean {
+                // Popup rule: windows without a user gesture are ads - swallow them.
+                // Real taps (links, buttons) open in a normal Manny tab.
+                if (popupBlockEnabled && !isBlockerPaused(view.url) && !isUserGesture) {
+                    onPopupBlocked()
+                    return false
+                }
+                val child = newTab()
+                val transport = resultMsg.obj as WebView.WebViewTransport
+                transport.webView = child.webView
+                resultMsg.sendToTarget()
+                return true
+            }
+            override fun onCloseWindow(window: WebView) {
+                val idx = tabs.indexOfFirst { it.webView === window }
+                if (idx >= 0) closeTab(idx)
+            }
             override fun onReceivedIcon(view: WebView, icon: Bitmap) {
                 tab.favicon = icon
                 view.url?.let { pageUrl ->
@@ -371,6 +464,11 @@ class BrowserState(private val context: Context) {
     }
 
     companion object {
+        private val EMPTY_RESPONSE = WebResourceResponse(
+            "text/plain", "utf-8", 403, "Forbidden", emptyMap(),
+            java.io.ByteArrayInputStream(ByteArray(0))
+        )
+
         fun toUrl(input: String): String {
             val s = input.trim()
             return when {

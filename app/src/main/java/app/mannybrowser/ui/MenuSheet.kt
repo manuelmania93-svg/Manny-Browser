@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FindInPage
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.PauseCircle
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,16 +40,31 @@ private data class MenuItem(val icon: ImageVector, val labelRes: Int, val action
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenuSheet(state: BrowserState) {
-    val items = listOf(
+    val pausedHere = state.isBlockerPaused(state.currentTab?.url)
+    val hasPage = state.currentTab?.url != null
+    val items = mutableListOf(
         MenuItem(Icons.Filled.History, R.string.history) { it.overlay = Overlay.HISTORY },
         MenuItem(Icons.Filled.ArrowDownward, R.string.downloads) { it.overlay = Overlay.DOWNLOADS },
         MenuItem(Icons.Filled.Add, R.string.new_tab) { it.newTab() },
+        MenuItem(
+            Icons.Filled.Security,
+            if (state.adBlockEnabled) R.string.ad_blocker_on else R.string.ad_blocker_off
+        ) { it.toggleAdBlock() },
         MenuItem(Icons.Filled.DarkMode, R.string.dark_mode) { it.toggleDark() },
         MenuItem(Icons.Filled.FindInPage, R.string.find_in_page) { it.findBarOpen = true },
         MenuItem(Icons.Filled.Share, R.string.share) { it.shareCurrent() },
         MenuItem(Icons.Filled.Fullscreen, R.string.fullscreen) { it.enterFullscreen() },
         MenuItem(Icons.Filled.SystemUpdateAlt, R.string.update_title) { it.overlay = Overlay.UPDATE }
     )
+    if (hasPage) {
+        items.add(
+            4,
+            MenuItem(
+                Icons.Filled.PauseCircle,
+                if (pausedHere) R.string.ad_blocker_resume_site else R.string.ad_blocker_pause_site
+            ) { it.toggleSitePause() }
+        )
+    }
     ModalBottomSheet(onDismissRequest = { state.menuOpen = false }) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(4),
