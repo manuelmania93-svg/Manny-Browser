@@ -48,4 +48,20 @@
     <string name="tab_count">%1$d tabs</string>
     <string name="close_tab">Close tab</string>
     <string name="open_tab_group">Open group</string>
+    <string name="search_tabs">Search tabs</string>
+    <string name="tab_options">Tab options</string>
+    <string name="toggle_layout">Switch grid or list</string>
+    <string name="select_tabs">Select tabs</string>
+    <string name="new_tab_group">New tab group</string>
+    <string name="close_group">Close group</string>
+    <string name="delete_group">Delete group</string>
+    <string name="edit_group_name">Edit group name</string>
+    <string name="edit_group_color">Edit group color</string>
+    <string name="group_name_hint">Group name</string>
+    <string name="new_group_action">New group (%1$d)</string>
+    <string name="close_selected">Close (%1$d)</string>
+    <string name="select_tab">Select %1$s</string>
+    <string name="tabs_selected">%1$d selected</string>
+    <string name="ungrouped_tab_count">%1$d tabs</string>
+    <string name="group_options">Group options</string>
 </resources>

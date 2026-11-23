@@ -37,8 +37,8 @@ class TabGroupsTest {
         }
         return null
     }
-    private fun waitForGroupCard(timeoutMs: Long = 25000): android.graphics.Rect? {
-        val deadline = System.currentTimeMillis() + timeoutMs
+    private fun waitForGroupCard(): android.graphics.Rect? {
+        val deadline = System.currentTimeMillis() + 10000
         do {
             val card = boundsFromSnapshot("text", "localhost", clickableParent = true)
             if (card != null) return card
@@ -74,13 +74,13 @@ class TabGroupsTest {
     }
     private fun closeFirstMember() {
         val allTabs = context.getString(R.string.all_tabs)
-        repeat(5) {
+        repeat(3) {
             val bounds = boundsFromSnapshot("content-desc", context.getString(R.string.close_tab))
             if (bounds == null) shot("missing-close")
             assertNotNull("Snapshot contains member close", bounds)
             device.click(bounds!!.centerX(), bounds.centerY())
             device.waitForIdle(); Thread.sleep(500)
-            if (device.wait(Until.gone(By.text(allTabs)), 5000)) return
+            if (device.wait(Until.gone(By.text(allTabs)), 3000)) return
         }
         fail("Member close did not collapse the group detail")
     }
@@ -91,31 +91,33 @@ class TabGroupsTest {
         device.click(bounds!!.centerX(), bounds.centerY())
         device.waitForIdle(); Thread.sleep(750)
     }
+    /** Clicks the group card until the member detail opens; slow emulators swallow taps. */
+    private fun openDetail(label: String) {
+        val allTabs = context.getString(R.string.all_tabs)
+        repeat(4) { attempt ->
+            click(label)
+            if (device.wait(Until.hasObject(By.text(allTabs)), 4000)) return
+            shot("open-detail-retry-$attempt")
+            // The tap may have dismissed the overview entirely; reopen it.
+            if (device.hasObject(By.desc("Tabs"))) tabs()
+        }
+        fail("Member detail never opened for $label")
+    }
+    /** Waits for a clickable overview card; reopens the overview if a stray Back closed it. */
+    private fun requireOverviewCard(): android.graphics.Rect {
+        repeat(3) {
+            val card = waitForGroupCard()
+            if (card != null) return card
+            if (device.hasObject(By.desc("Tabs"))) tabs()
+        }
+        throw AssertionError("Overview card never returned")
+    }
     private fun shot(name: String) {
         recordState("screenshot $name")
         val dir = File(context.getExternalFilesDir(null), "manny-evidence").apply { mkdirs() }
         val lang = context.resources.configuration.locales[0].language
         device.takeScreenshot(File(dir, "$lang-group-$name.png"))
         device.dumpWindowHierarchy(File(dir, "$lang-group-$name.xml"))
-    }
-    private fun openGroupDetail() {
-        var detailOpen = false
-        repeat(3) {
-            if (detailOpen) return@repeat
-            var b = boundsFromSnapshot("text", "localhost", clickableParent = true)
-            if (b == null) {
-                // Either the overview was dismissed (doubled Back) or the card has
-                // not composed yet; (re)open the overview and poll for the card.
-                if (device.hasObject(By.desc("Tabs"))) tabs()
-                b = waitForGroupCard()
-            }
-            if (b != null) {
-                device.click(b.centerX(), b.centerY())
-                device.waitForIdle(); Thread.sleep(500)
-            }
-            detailOpen = device.wait(Until.hasObject(By.text(context.getString(R.string.all_tabs))), 8000)
-        }
-        assertTrue("Group detail did not open", detailOpen)
     }
     private fun open(url: String) {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url), context, MainActivity::class.java)
@@ -155,7 +157,7 @@ class TabGroupsTest {
         // acknowledgement that Back completed. Wait for the detail-only control
         // to disappear, then require a clickable overview card before proceeding.
         repeat(5) { cycle ->
-            openGroupDetail()
+            openDetail("localhost")
             assertTrue("Cycle $cycle opens members", visible(allTabs))
             assertEquals("One close per member", 2, device.findObjects(By.desc(context.getString(R.string.close_tab))).size)
             shot("members-$cycle")
@@ -168,17 +170,10 @@ class TabGroupsTest {
                 leftDetail = device.wait(Until.gone(By.text(allTabs)), 10000)
             }
             assertTrue("Cycle $cycle Back leaves detail", leftDetail)
-            var card = waitForGroupCard()
-            if (card == null) {
-                // A doubled Back on a slow emulator can dismiss the overview with
-                // the detail; reopen it and look once more before failing.
-                if (device.hasObject(By.desc("Tabs"))) tabs()
-                card = waitForGroupCard()
-            }
-            assertNotNull("Cycle $cycle clickable group card", card)
+            requireOverviewCard()
             shot("back-$cycle")
         }
-        openGroupDetail()
+        click("localhost")
         assertTrue("Member detail before selection", visible(context.getString(R.string.all_tabs)))
         val first = boundsFromSnapshot("content-desc", context.getString(R.string.close_tab))
         assertNotNull("Member card bounds available", first)
@@ -190,7 +185,7 @@ class TabGroupsTest {
         tabs()
         shot("reopened-overview")
         assertTrue("Reopened overview is not detail", device.wait(Until.gone(By.text(allTabs)), 10000))
-        openGroupDetail()
+        openDetail("localhost")
         assertTrue("Member detail reopened before close", visible(context.getString(R.string.all_tabs)))
         shot("before-close")
         closeFirstMember()
@@ -200,6 +195,12 @@ class TabGroupsTest {
         shot("settled-after-close")
         assertTrue("No grouped localhost card after closing member", hostGone)
         shot("after-close")
+        val options = context.getString(R.string.tab_options)
+        assertTrue("Options button", device.wait(Until.hasObject(By.desc(options)), 10000))
+        val menuBounds = boundsFromSnapshot("content-desc", options)
+        assertNotNull("Options snapshot", menuBounds)
+        device.click(menuBounds!!.centerX(), menuBounds.centerY())
+        device.waitForIdle(); Thread.sleep(600)
         click(context.getString(R.string.close_all))
         tabs()
         assertTrue("Fresh tab close button shown", device.wait(Until.hasObject(By.desc(context.getString(R.string.close_tab))), 10000))

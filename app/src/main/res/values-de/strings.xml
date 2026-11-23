@@ -48,4 +48,20 @@
     <string name="tab_count">%1$d Tabs</string>
     <string name="close_tab">Tab schließen</string>
     <string name="open_tab_group">Gruppe öffnen</string>
+    <string name="search_tabs">Tabs durchsuchen</string>
+    <string name="tab_options">Tab-Optionen</string>
+    <string name="toggle_layout">Raster oder Liste wechseln</string>
+    <string name="select_tabs">Tabs auswählen</string>
+    <string name="new_tab_group">Neue Tabgruppe</string>
+    <string name="close_group">Gruppe schließen</string>
+    <string name="delete_group">Gruppe löschen</string>
+    <string name="edit_group_name">Gruppenname bearbeiten</string>
+    <string name="edit_group_color">Gruppenfarbe bearbeiten</string>
+    <string name="group_name_hint">Gruppenname</string>
+    <string name="new_group_action">Neue Gruppe (%1$d)</string>
+    <string name="close_selected">Schließen (%1$d)</string>
+    <string name="select_tab">%1$s auswählen</string>
+    <string name="tabs_selected">%1$d ausgewählt</string>
+    <string name="ungrouped_tab_count">%1$d Tabs</string>
+    <string name="group_options">Gruppenoptionen</string>
 </resources>
