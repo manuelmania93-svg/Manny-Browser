@@ -95,7 +95,17 @@ class TabGroupsTest {
     private fun openDetail(label: String) {
         val allTabs = context.getString(R.string.all_tabs)
         repeat(4) { attempt ->
-            click(label)
+            if (device.hasObject(By.text(allTabs))) return
+            // Tap the card TITLE, never the card center: a replayed tap at card
+            // center lands on a member row once the detail opens and opens the
+            // tab instead. The header row stays inert in the expanded detail.
+            assertTrue("Missing $label", visible(label))
+            val bounds = boundsFromSnapshot("text", label, clickableParent = false)
+            assertNotNull("Snapshot contains $label", bounds)
+            recordState("before title=$label bounds=$bounds")
+            device.click(bounds!!.centerX(), bounds.centerY())
+            device.waitForIdle(); Thread.sleep(500)
+            recordState("after title=$label")
             if (device.wait(Until.hasObject(By.text(allTabs)), 4000)) return
             shot("open-detail-retry-$attempt")
             // The tap may have dismissed the overview entirely; reopen it.
@@ -173,7 +183,7 @@ class TabGroupsTest {
             requireOverviewCard()
             shot("back-$cycle")
         }
-        click("localhost")
+        openDetail("localhost")
         assertTrue("Member detail before selection", visible(context.getString(R.string.all_tabs)))
         val first = boundsFromSnapshot("content-desc", context.getString(R.string.close_tab))
         assertNotNull("Member card bounds available", first)
