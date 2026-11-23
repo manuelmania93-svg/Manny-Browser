@@ -94,22 +94,29 @@ class TabGroupsTest {
     /** Clicks the group card until the member detail opens; slow emulators swallow taps. */
     private fun openDetail(label: String) {
         val allTabs = context.getString(R.string.all_tabs)
-        repeat(4) { attempt ->
+        repeat(6) { attempt ->
             if (device.hasObject(By.text(allTabs))) return
-            // Tap the card TITLE, never the card center: a replayed tap at card
-            // center lands on a member row once the detail opens and opens the
-            // tab instead. The header row stays inert in the expanded detail.
             assertTrue("Missing $label", visible(label))
             val bounds = boundsFromSnapshot("text", label, clickableParent = false)
             assertNotNull("Snapshot contains $label", bounds)
             recordState("before title=$label bounds=$bounds")
             device.click(bounds!!.centerX(), bounds.centerY())
-            device.waitForIdle(); Thread.sleep(500)
-            recordState("after title=$label")
-            if (device.wait(Until.hasObject(By.text(allTabs)), 4000)) return
-            shot("open-detail-retry-$attempt")
-            // The tap may have dismissed the overview entirely; reopen it.
-            if (device.hasObject(By.desc("Tabs"))) tabs()
+            device.waitForIdle()
+            if (device.wait(Until.hasObject(By.text(allTabs)), 6000)) {
+                // A queued tap replay can still land on a member row and open
+                // the tab; trust the detail only if it survives a settle window.
+                Thread.sleep(1200)
+                device.waitForIdle()
+                if (device.hasObject(By.text(allTabs))) return
+                shot("open-detail-replay-$attempt")
+            } else {
+                shot("open-detail-retry-$attempt")
+            }
+            // Tab opened or the tap was swallowed: return to a settled overview.
+            if (device.hasObject(By.desc("Tabs"))) {
+                tabs()
+                requireOverviewCard()
+            }
         }
         fail("Member detail never opened for $label")
     }
