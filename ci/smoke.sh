@@ -15,6 +15,9 @@ run_instrumentation() { # run_instrumentation <language> <out-file> [class-filte
   local language="$1" out="$2" filter="${3:-}"
   adb wait-for-device
   adb shell cmd locale set-app-locales app.mannybrowser --locales "$language"
+  # Fresh app state per invocation: leftover bookmarks/tabs from a previous
+  # locale or a failed full run make retried methods fail deterministically.
+  adb shell pm clear app.mannybrowser
   adb shell am force-stop app.mannybrowser
   if [ -n "$filter" ]; then
     adb shell am instrument -w -e class "$filter" app.mannybrowser.test/androidx.test.runner.AndroidJUnitRunner | tee "$out"
