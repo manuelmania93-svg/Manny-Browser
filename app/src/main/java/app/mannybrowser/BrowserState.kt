@@ -42,6 +42,8 @@ enum class Overlay { NONE, TABS, BOOKMARKS, HISTORY, DOWNLOADS, UPDATE }
 class Tab(val id: Long, val webView: WebView) {
     var url by mutableStateOf<String?>(null)
     var title by mutableStateOf("")
+    /** Restored tab not yet loaded; the URL loads on first activation so a big session does not spawn N parallel page loads. */
+    var pendingUrl: String? = null
     var preview by mutableStateOf<Bitmap?>(null)
     var favicon by mutableStateOf<Bitmap?>(null)
 }
@@ -125,15 +127,18 @@ class BrowserState(private val context: Context) {
         tabGroups.removeAll { it.tabIds.isEmpty() }
         val group = TabGroup(nextGroupId++, name.trim().ifBlank { "Group" }, colorIndex, ids)
         tabGroups.add(group)
+        persistSession()
         return group
     }
 
     fun renameGroup(groupId: Long, name: String) {
         tabGroups.firstOrNull { it.id == groupId }?.let { it.name = name.trim().ifBlank { it.name } }
+        persistSession()
     }
 
     fun recolorGroup(groupId: Long, colorIndex: Int) {
         tabGroups.firstOrNull { it.id == groupId }?.colorIndex = colorIndex
+        persistSession()
     }
 
     /** Closes every tab in the group and removes it (Chrome's "Close group"). */
@@ -144,11 +149,13 @@ class BrowserState(private val context: Context) {
             if (index >= 0) closeTab(index)
         }
         tabGroups.removeAll { it.id == groupId || it.tabIds.isEmpty() }
+        persistSession()
     }
 
     /** Removes the group but keeps its tabs as ungrouped tabs (Chrome's "Delete group"). */
     fun deleteGroup(groupId: Long) {
         tabGroups.removeAll { it.id == groupId }
+        persistSession()
     }
 
     // --- In-app update flow (same semantics as File Explorer CL: user-tap only, never silent) ---
@@ -305,6 +312,7 @@ class BrowserState(private val context: Context) {
                 view.title?.let { if (it.isNotBlank()) tab.title = it }
                 stores.addHistory(tab.title.ifBlank { visitedUrl }, visitedUrl)
                 history = stores.history()
+                persistSession()
             }
             override fun onPageFinished(view: WebView, finishedUrl: String?) {
                 view.title?.let { if (it.isNotBlank()) tab.title = it }
@@ -357,6 +365,7 @@ class BrowserState(private val context: Context) {
         tabs.add(tab)
         currentTabIndex = tabs.size - 1
         if (url != null) navigate(url)
+        persistSession()
         return tab
     }
 
@@ -370,6 +379,7 @@ class BrowserState(private val context: Context) {
         if (tabs.isEmpty()) { newTab() }
         else if (index < currentTabIndex) currentTabIndex--
         else if (currentTabIndex >= tabs.size) currentTabIndex = tabs.size - 1
+        persistSession()
     }
 
     fun closeAllTabs() {
@@ -379,11 +389,55 @@ class BrowserState(private val context: Context) {
         newTab()
     }
 
+    /** Switches to a tab, loading a restored tab's page on first activation. */
+    fun activateTab(index: Int) {
+        if (index !in tabs.indices) return
+        currentTabIndex = index
+        val t = tabs[index]
+        t.pendingUrl?.let { t.webView.loadUrl(it); t.pendingUrl = null }
+    }
+
+    // --- Session persistence: tabs and manual groups survive process death and updates ---
+
+    fun persistSession() {
+        stores.saveSession(
+            app.mannybrowser.data.Session.of(
+                tabs = tabs.map { app.mannybrowser.data.SessionTab(it.url, it.title) },
+                tabIds = tabs.map { it.id },
+                groups = tabGroups.map { Triple(it.name, it.colorIndex, it.tabIds.toList()) },
+                current = currentTabIndex
+            )
+        )
+    }
+
+    /**
+     * Recreates tabs and groups from the last saved session. Only the active tab loads its page;
+     * the rest load on first activation. Returns false when there is nothing to restore.
+     */
+    fun restoreSession(): Boolean {
+        val session = stores.loadSession() ?: return false
+        if (session.tabs.isEmpty()) return false
+        session.tabs.forEach { saved ->
+            val tab = newTab()
+            tab.url = saved.url
+            tab.title = saved.title
+            tab.pendingUrl = saved.url
+        }
+        session.groups.forEach { g ->
+            val ids = g.members.mapNotNull { tabs.getOrNull(it)?.id }
+            if (ids.isNotEmpty()) createGroup(g.name, g.colorIndex, ids)
+        }
+        activateTab(session.current)
+        return true
+    }
+
     fun navigate(input: String) {
         val t = currentTab ?: return
         val target = toUrl(input)
+        t.pendingUrl = null
         t.url = target
         t.webView.loadUrl(target)
+        persistSession()
     }
 
     fun goHome() {
@@ -392,6 +446,8 @@ class BrowserState(private val context: Context) {
         t.webView.stopLoading()
         t.url = null
         t.title = ""
+        t.pendingUrl = null
+        persistSession()
     }
 
     fun openInNewTab(url: String) {

@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, true)
         state = BrowserState(this)
-        state.newTab()
+        if (!state.restoreSession()) state.newTab()
         state.initAdBlock()
         handleIntent(intent)
         setContent {
@@ -35,6 +35,7 @@ class MainActivity : ComponentActivity() {
             DisposableEffect(updateLifecycleOwner) {
                 val observer = LifecycleEventObserver { _, event ->
                     if (event == Lifecycle.Event.ON_RESUME) state.onResumeAfterGrant()
+                    if (event == Lifecycle.Event.ON_STOP) state.persistSession()
                 }
                 updateLifecycleOwner.lifecycle.addObserver(observer)
                 onDispose { updateLifecycleOwner.lifecycle.removeObserver(observer) }

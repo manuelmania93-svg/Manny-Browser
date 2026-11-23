@@ -165,7 +165,7 @@ fun TabGridScreen(state: BrowserState) {
                     },
                     onOpen = { tab ->
                         val index = state.tabs.indexOfFirst { it.id == tab.id }
-                        if (index >= 0) { state.currentTabIndex = index; state.overlay = Overlay.NONE }
+                        if (index >= 0) { state.activateTab(index); state.overlay = Overlay.NONE }
                     })
             } else if (listMode && !selecting) {
                 LazyColumn(Modifier.weight(1f).padding(horizontal = 12.dp)) {
@@ -253,7 +253,7 @@ private fun BackHandlerCompat(enabled: Boolean, onBack: () -> Unit) {
 
 private fun openTab(state: BrowserState, tab: Tab) {
     val index = state.tabs.indexOfFirst { it.id == tab.id }
-    if (index >= 0) { state.currentTabIndex = index; state.overlay = Overlay.NONE }
+    if (index >= 0) { state.activateTab(index); state.overlay = Overlay.NONE }
 }
 
 @Composable
