@@ -94,12 +94,29 @@ class TabGroupsTest {
     /** Clicks the group card until the member detail opens; slow emulators swallow taps. */
     private fun openDetail(label: String) {
         val allTabs = context.getString(R.string.all_tabs)
-        repeat(4) { attempt ->
-            click(label)
-            if (device.wait(Until.hasObject(By.text(allTabs)), 4000)) return
-            shot("open-detail-retry-$attempt")
-            // The tap may have dismissed the overview entirely; reopen it.
-            if (device.hasObject(By.desc("Tabs"))) tabs()
+        repeat(6) { attempt ->
+            if (device.hasObject(By.text(allTabs))) return
+            assertTrue("Missing $label", visible(label))
+            val bounds = boundsFromSnapshot("text", label, clickableParent = false)
+            assertNotNull("Snapshot contains $label", bounds)
+            recordState("before title=$label bounds=$bounds")
+            device.click(bounds!!.centerX(), bounds.centerY())
+            device.waitForIdle()
+            if (device.wait(Until.hasObject(By.text(allTabs)), 6000)) {
+                // A queued tap replay can still land on a member row and open
+                // the tab; trust the detail only if it survives a settle window.
+                Thread.sleep(1200)
+                device.waitForIdle()
+                if (device.hasObject(By.text(allTabs))) return
+                shot("open-detail-replay-$attempt")
+            } else {
+                shot("open-detail-retry-$attempt")
+            }
+            // Tab opened or the tap was swallowed: return to a settled overview.
+            if (device.hasObject(By.desc("Tabs"))) {
+                tabs()
+                requireOverviewCard()
+            }
         }
         fail("Member detail never opened for $label")
     }
@@ -173,7 +190,7 @@ class TabGroupsTest {
             requireOverviewCard()
             shot("back-$cycle")
         }
-        click("localhost")
+        openDetail("localhost")
         assertTrue("Member detail before selection", visible(context.getString(R.string.all_tabs)))
         val first = boundsFromSnapshot("content-desc", context.getString(R.string.close_tab))
         assertNotNull("Member card bounds available", first)
