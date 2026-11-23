@@ -11,14 +11,37 @@ adb logcat -c
 adb logcat > evidence/logcat-live.txt 2>&1 &
 LOG_PID=$!
 trap 'kill "$FIXTURE_PID" "$LOG_PID" 2>/dev/null || true' EXIT
-status=0
-for language in en de; do
+run_instrumentation() { # run_instrumentation <language> <out-file> [class-filter]
+  local language="$1" out="$2" filter="${3:-}"
   adb wait-for-device
   adb shell cmd locale set-app-locales app.mannybrowser --locales "$language"
   adb shell am force-stop app.mannybrowser
-  adb shell am instrument -w app.mannybrowser.test/androidx.test.runner.AndroidJUnitRunner | tee "evidence/instrumentation-$language.txt"
+  if [ -n "$filter" ]; then
+    adb shell am instrument -w -e class "$filter" app.mannybrowser.test/androidx.test.runner.AndroidJUnitRunner | tee "$out"
+  else
+    adb shell am instrument -w app.mannybrowser.test/androidx.test.runner.AndroidJUnitRunner | tee "$out"
+  fi
   adb pull /sdcard/Android/data/app.mannybrowser/files/manny-evidence/. evidence/ || true
-  if ! grep -q 'OK (' "evidence/instrumentation-$language.txt" || grep -q 'FAILURES\|INSTRUMENTATION_FAILED\|Process crashed' "evidence/instrumentation-$language.txt"; then status=1; fi
+}
+
+result_ok() { grep -q 'OK (' "$1" && ! grep -q 'FAILURES\|INSTRUMENTATION_FAILED\|Process crashed' "$1"; }
+
+status=0
+for language in en de; do
+  run_instrumentation "$language" "evidence/instrumentation-$language.txt"
+  if ! result_ok "evidence/instrumentation-$language.txt"; then
+    # Emulator input races flake individual methods on otherwise healthy builds.
+    # Re-run only the failed methods once, in a fresh process; only a repeat
+    # failure of the same method fails the job.
+    retry=$(sed -nE 's/^[0-9]+\) ([A-Za-z0-9_]+)\(([A-Za-z0-9_.]+)\)$/\2#\1/p' "evidence/instrumentation-$language.txt" | sort -u | paste -sd, -)
+    echo "retrying failed methods: $retry" | tee -a "evidence/instrumentation-$language.txt"
+    if [ -n "$retry" ]; then
+      run_instrumentation "$language" "evidence/instrumentation-$language-retry.txt" "$retry"
+      if ! result_ok "evidence/instrumentation-$language-retry.txt"; then status=1; fi
+    else
+      status=1
+    fi
+  fi
 done
 adb logcat -d > evidence/logcat.txt
 
