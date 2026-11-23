@@ -33,17 +33,21 @@ status=0
 for language in en de; do
   run_instrumentation "$language" "evidence/instrumentation-$language.txt"
   if ! result_ok "evidence/instrumentation-$language.txt"; then
-    # Emulator input races flake individual methods on otherwise healthy builds.
-    # Re-run only the failed methods once, in a fresh process; only a repeat
-    # failure of the same method fails the job.
-    retry=$(sed -nE 's/^[0-9]+\) ([A-Za-z0-9_]+)\(([A-Za-z0-9_.]+)\)$/\2#\1/p' "evidence/instrumentation-$language.txt" | sort -u | paste -sd, -)
-    echo "retrying failed methods: $retry" | tee -a "evidence/instrumentation-$language.txt"
-    if [ -n "$retry" ]; then
-      run_instrumentation "$language" "evidence/instrumentation-$language-retry.txt" "$retry"
-      if ! result_ok "evidence/instrumentation-$language-retry.txt"; then status=1; fi
-    else
-      status=1
-    fi
+    # Emulator input races flake individual methods at DIFFERENT steps run to
+    # run (TabGroupsTest failed at a different assertion on the retry than on
+    # the first pass). Re-run only the failed methods, in a fresh process with
+    # cleared app data, up to two attempts; only a method failing every
+    # attempt fails the job.
+    previous="evidence/instrumentation-$language.txt"
+    for attempt in 1 2; do
+      retry=$(sed -nE 's/^[0-9]+\) ([A-Za-z0-9_]+)\(([A-Za-z0-9_.]+)\)$/\2#\1/p' "$previous" | sort -u | paste -sd, -)
+      echo "retry attempt $attempt for failed methods: $retry" | tee -a "evidence/instrumentation-$language.txt"
+      if [ -z "$retry" ]; then status=1; break; fi
+      previous="evidence/instrumentation-$language-retry$attempt.txt"
+      run_instrumentation "$language" "$previous" "$retry"
+      if result_ok "$previous"; then break; fi
+      if [ "$attempt" = 2 ]; then status=1; fi
+    done
   fi
 done
 adb logcat -d > evidence/logcat.txt
