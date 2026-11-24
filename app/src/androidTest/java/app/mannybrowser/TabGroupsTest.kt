@@ -8,10 +8,18 @@ import androidx.test.uiautomator.*
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.BeforeClass
 import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class TabGroupsTest {
+    companion object {
+        @JvmStatic
+        @BeforeClass
+        fun disableSessionPersistence() {
+            BrowserState.sessionPersistenceEnabled = false
+        }
+    }
     private val inst = InstrumentationRegistry.getInstrumentation()
     private val context = inst.targetContext
     private val device = UiDevice.getInstance(inst)

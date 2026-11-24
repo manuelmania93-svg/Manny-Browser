@@ -10,10 +10,18 @@ import androidx.test.uiautomator.Until
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.BeforeClass
 import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class BrowserSmokeTest {
+    companion object {
+        @JvmStatic
+        @BeforeClass
+        fun disableSessionPersistence() {
+            BrowserState.sessionPersistenceEnabled = false
+        }
+    }
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
     private val device = UiDevice.getInstance(instrumentation)
