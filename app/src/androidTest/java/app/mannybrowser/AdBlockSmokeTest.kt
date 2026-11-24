@@ -12,6 +12,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.BeforeClass
 import java.io.File
 
 /**
@@ -23,6 +24,13 @@ import java.io.File
  */
 @RunWith(AndroidJUnit4::class)
 class AdBlockSmokeTest {
+    companion object {
+        @JvmStatic
+        @BeforeClass
+        fun disableSessionPersistence() {
+            BrowserState.sessionPersistenceEnabled = false
+        }
+    }
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
     private val device = UiDevice.getInstance(instrumentation)

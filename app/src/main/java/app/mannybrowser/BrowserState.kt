@@ -400,6 +400,7 @@ class BrowserState(private val context: Context) {
     // --- Session persistence: tabs and manual groups survive process death and updates ---
 
     fun persistSession() {
+        if (!sessionPersistenceEnabled) return
         stores.saveSession(
             app.mannybrowser.data.Session.of(
                 tabs = tabs.map { app.mannybrowser.data.SessionTab(it.url, it.title) },
@@ -415,6 +416,7 @@ class BrowserState(private val context: Context) {
      * the rest load on first activation. Returns false when there is nothing to restore.
      */
     fun restoreSession(): Boolean {
+        if (!sessionPersistenceEnabled) return false
         val session = stores.loadSession() ?: return false
         if (session.tabs.isEmpty()) return false
         session.tabs.forEach { saved ->
@@ -520,6 +522,8 @@ class BrowserState(private val context: Context) {
     }
 
     companion object {
+        /** Instrumentation tests switch persistence off so one test's session never leaks into the next. */
+        @Volatile var sessionPersistenceEnabled = true
         private val EMPTY_RESPONSE = WebResourceResponse(
             "text/plain", "utf-8", 403, "Forbidden", emptyMap(),
             java.io.ByteArrayInputStream(ByteArray(0))

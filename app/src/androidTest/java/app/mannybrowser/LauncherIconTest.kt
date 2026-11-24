@@ -10,11 +10,19 @@ import androidx.test.uiautomator.Until
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.BeforeClass
 import java.io.File
 import java.security.MessageDigest
 
 @RunWith(AndroidJUnit4::class)
 class LauncherIconTest {
+    companion object {
+        @JvmStatic
+        @BeforeClass
+        fun disableSessionPersistence() {
+            BrowserState.sessionPersistenceEnabled = false
+        }
+    }
     @Test fun newIconAppearsInLauncherAndKeepsReleasedSigningIdentity() {
         val inst = InstrumentationRegistry.getInstrumentation()
         val context = inst.targetContext
