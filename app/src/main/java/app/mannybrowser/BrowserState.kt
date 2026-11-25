@@ -46,6 +46,9 @@ class Tab(val id: Long, val webView: WebView) {
     var pendingUrl: String? = null
     var preview by mutableStateOf<Bitmap?>(null)
     var favicon by mutableStateOf<Bitmap?>(null)
+    /** Chrome-style per-tab switches from the menu; session-scoped, not persisted. */
+    var desktopMode by mutableStateOf(false)
+    var textZoom by mutableIntStateOf(100)
 }
 
 /** Manually created, named and colored tab group. Lives as long as its tabs (in-memory, like tabs). */
@@ -250,6 +253,53 @@ class BrowserState(private val context: Context) {
     fun applyDark(wv: WebView) {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
             WebSettingsCompat.setAlgorithmicDarkeningAllowed(wv.settings, isDark())
+        }
+    }
+
+    // --- Chrome-style menu actions (per-tab display switches and page tools) ---
+
+    var zoomDialogOpen by mutableStateOf(false)
+    var clearDataDialogOpen by mutableStateOf(false)
+
+    fun toggleDesktopMode() {
+        val t = currentTab ?: return
+        t.desktopMode = !t.desktopMode
+        t.webView.settings.userAgentString = if (t.desktopMode) DESKTOP_UA else null
+        t.webView.settings.useWideViewPort = t.desktopMode
+        t.webView.settings.loadWithOverviewMode = t.desktopMode
+        if (t.url != null) t.webView.reload()
+    }
+
+    fun changeTextZoom(delta: Int) {
+        val t = currentTab ?: return
+        val zoom = (t.textZoom + delta).coerceIn(50, 200)
+        t.textZoom = zoom
+        t.webView.settings.textZoom = zoom
+    }
+
+    /** Chrome's "Add tab to new group": wraps the current page in a fresh manual group. */
+    fun addCurrentTabToNewGroup(): Boolean {
+        val t = currentTab ?: return false
+        if (t.url == null) return false
+        val created = createGroup("", tabGroups.size % 6, listOf(t.id)) != null
+        if (created) Toast.makeText(context, context.getString(R.string.group_created), Toast.LENGTH_SHORT).show()
+        return created
+    }
+
+    /** Chrome's "Add shortcut": pins the current page on the start page. */
+    fun addShortcutForCurrent(): Boolean {
+        val t = currentTab ?: return false
+        val u = t.url ?: return false
+        addShortcut(t.title.ifBlank { u }, u)
+        return true
+    }
+
+    fun clearBrowsingData(clearHist: Boolean, clearCache: Boolean, clearCookies: Boolean) {
+        if (clearHist) clearHistory()
+        if (clearCache) tabs.forEach { it.webView.clearCache(true) }
+        if (clearCookies) {
+            CookieManager.getInstance().removeAllCookies(null)
+            CookieManager.getInstance().flush()
         }
     }
 
@@ -524,6 +574,8 @@ class BrowserState(private val context: Context) {
     companion object {
         /** Instrumentation tests switch persistence off so one test's session never leaks into the next. */
         @Volatile var sessionPersistenceEnabled = true
+        private const val DESKTOP_UA =
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
         private val EMPTY_RESPONSE = WebResourceResponse(
             "text/plain", "utf-8", 403, "Forbidden", emptyMap(),
             java.io.ByteArrayInputStream(ByteArray(0))

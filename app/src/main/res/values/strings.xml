@@ -64,4 +64,14 @@
     <string name="tabs_selected">%1$d selected</string>
     <string name="ungrouped_tab_count">%1$d tabs</string>
     <string name="group_options">Group options</string>
+    <string name="reload">Reload</string>
+    <string name="add_tab_to_new_group">Add tab to new group</string>
+    <string name="clear_browsing_data">Clear browsing data</string>
+    <string name="clear_data_history">Browsing history</string>
+    <string name="clear_data_cache">Cached images and files</string>
+    <string name="clear_data_cookies">Cookies and site data</string>
+    <string name="clear_action">Clear</string>
+    <string name="zoom">Zoom</string>
+    <string name="desktop_site">Desktop site</string>
+    <string name="group_created">Tab group created</string>
 </resources>
