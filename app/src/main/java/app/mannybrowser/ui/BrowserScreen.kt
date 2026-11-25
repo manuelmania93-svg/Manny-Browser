@@ -115,8 +115,11 @@ fun BrowserScreen(state: BrowserState) {
                             }
                         }
                     }
-                    IconButton(onClick = { state.overlay = Overlay.NONE; state.menuOpen = true }) {
-                        Icon(Icons.Filled.Menu, contentDescription = "Menu")
+                    Box {
+                        IconButton(onClick = { state.overlay = Overlay.NONE; state.menuOpen = true }) {
+                            Icon(Icons.Filled.Menu, contentDescription = "Menu")
+                        }
+                        if (state.menuOpen) MenuSheet(state)
                     }
                 }
             }
@@ -203,7 +206,8 @@ fun BrowserScreen(state: BrowserState) {
             Overlay.NONE -> { }
         }
 
-        if (state.menuOpen) MenuSheet(state)
+        if (state.zoomDialogOpen) ZoomDialog(state)
+        if (state.clearDataDialogOpen) ClearDataDialog(state)
     }
 }
 }
